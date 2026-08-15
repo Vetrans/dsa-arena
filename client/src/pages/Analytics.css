@@ -1,0 +1,218 @@
+.analytics-container {
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+  padding: var(--space-8) 0 var(--space-16);
+}
+
+.analytics-header {
+  margin-bottom: var(--space-8);
+}
+
+.analytics-title {
+  font-size: var(--font-size-3xl);
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.analytics-subtitle {
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+}
+
+/* Overview Grid */
+.analytics-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+.analytics-stat-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+}
+
+.stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+.stat-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.icon-rating { color: var(--accent-primary); }
+.icon-target { color: var(--info); }
+.icon-accuracy { color: var(--success); }
+.icon-streak { color: var(--warning); }
+
+.stat-main {
+  font-size: var(--font-size-2xl);
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.stat-badge-sub {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+/* Charts Grid */
+.analytics-charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  margin-bottom: var(--space-10);
+}
+
+.analytics-chart-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+.card-heading {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-5);
+}
+
+.difficulty-progress-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.diff-bar-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.diff-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.diff-label {
+  font-weight: 700;
+}
+
+.text-easy { color: var(--easy); }
+.text-medium { color: var(--medium); }
+.text-hard { color: var(--hard); }
+
+.chart-wrapper {
+  margin-top: var(--space-2);
+}
+
+.empty-chart-box {
+  text-align: center;
+  padding: var(--space-8);
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
+}
+
+/* Topic Mastery Section */
+.topic-mastery-section {
+  margin-top: var(--space-8);
+}
+
+.section-title {
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: var(--space-6);
+}
+
+.topics-competency-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+
+.topic-competency-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.topic-comp-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.topic-comp-icon {
+  font-size: 24px;
+}
+
+.topic-comp-name {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.topic-comp-solved {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.comp-status-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+}
+
+.comp-status-badge.strong {
+  background: var(--success-muted);
+  color: var(--success);
+}
+
+.comp-status-badge.average {
+  background: var(--warning-muted);
+  color: var(--warning);
+}
+
+.comp-status-badge.needs-practice {
+  background: var(--danger-muted);
+  color: var(--danger);
+}
+
+.topic-comp-accuracy-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-1);
+}
+
+.acc-val {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+@media (max-width: 900px) {
+  .analytics-charts-grid {
+    grid-template-columns: 1fr;
+  }
+}

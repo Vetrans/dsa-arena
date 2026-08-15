@@ -1,0 +1,107 @@
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-primary);
+  background-image: radial-gradient(circle at center, var(--accent-primary-muted) 0%, transparent 70%);
+  padding: var(--space-4);
+}
+
+.auth-card-container {
+  width: 100%;
+  max-width: 440px;
+  animation: slideUp var(--transition-base);
+}
+
+.auth-card {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  box-shadow: var(--shadow-lg);
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: var(--space-8);
+}
+
+.auth-logo {
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+  color: var(--accent-primary);
+  margin-bottom: var(--space-6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.auth-title {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.auth-subtitle {
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.password-input-wrapper {
+  position: relative;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  color: var(--text-tertiary);
+  transition: color var(--transition-fast);
+}
+
+.password-toggle-btn:hover {
+  color: var(--text-secondary);
+}
+
+/* Specific adjustment if Input component wraps things differently */
+.password-input-wrapper .input-container {
+  margin-bottom: 0; /* Let form gap handle spacing */
+}
+
+.auth-error-message {
+  color: var(--danger);
+  font-size: var(--font-size-sm);
+  background-color: var(--danger-muted);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.auth-submit-btn {
+  margin-top: var(--space-2);
+  width: 100%;
+}
+
+.auth-footer {
+  margin-top: var(--space-8);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.auth-link {
+  color: var(--accent-primary);
+  font-weight: 500;
+}
+
+.auth-link:hover {
+  color: var(--accent-primary-hover);
+  text-decoration: underline;
+}
