@@ -1,60 +1,8 @@
-import { Link } from "react-router-dom";
-import logo from "../assets/nyc-logo.jpg";
-export function HomePage() {
-  return (
-    <main className="welcome">
-      <header className="site-header">
-        <Link className="brand" to="/">
-          <img src={logo} alt="Not Your College" />
-          <span>DSA Arena</span>
-        </Link>
-        <nav>
-          <Link to="/problems">Problems</Link>
-          <Link to="/contests">Contests</Link>
-          <Link to="/leaderboard">Leaderboard</Link>
-        </nav>
-        <div className="header-actions">
-          <Link to="/login">Login</Link>
-          <Link className="button button-yellow" to="/register">
-            Join Arena
-          </Link>
-        </div>
-      </header>
-      <section className="hero">
-        <p className="eyebrow">NOT YOUR COLLEGE · COMPETITIVE PROGRAMMING</p>
-        <h1>
-          Build real skills.
-          <br />
-          <em>Compete together.</em>
-        </h1>
-        <p>
-          NYC DSA Arena is your space to practice, compete, track progress, and
-          grow with the community.
-        </p>
-        <div className="hero-actions">
-          <Link className="button button-yellow" to="/register">
-            Create account
-          </Link>
-          <Link className="button button-outline" to="/problems">
-            Browse problems
-          </Link>
-        </div>
-      </section>
-      <section className="journey">
-        <h2>Your product pages are ready to connect.</h2>
-        <div>
-          {[
-            ["Practice", "/problems"],
-            ["Compete", "/contests"],
-            ["Track progress", "/dashboard"],
-            ["Learn", "/roadmap"],
-          ].map(([label, to]) => (
-            <Link key={to} to={to}>
-              {label} <span>→</span>
-            </Link>
-          ))}
-        </div>
-      </section>
-    </main>
-  );
-}
+import { Link } from 'react-router-dom';
+import { useLayoutEffect, useRef } from 'react';
+import { gsap } from 'gsap';
+import { PublicFrame } from '../components/app/PublicHeader.jsx';
+import { useTypewriter } from '../hooks/useTypewriter.js';
+import './HomePage.css';
+const words = ['CODE.', 'SOLVE.', 'CONQUER.'];
+export function HomePage(){const root=useRef(null);const {text,index}=useTypewriter(words, 85, 700);useLayoutEffect(()=>{const ctx=gsap.context(()=>{gsap.from('.hero-copy > *',{opacity:0,y:42,stagger:.12,duration:.75,ease:'power3.out'});gsap.from('.hero-orbit',{scale:.65,rotation:-30,opacity:0,duration:1.1,ease:'expo.out'});},root);return()=>ctx.revert();},[]);return <div ref={root}><PublicFrame><main><section className="hero-v2"><div className="hero-copy"><p className="eyebrow">NOT YOUR COLLEGE · DSA ARENA</p><h1 className={`type-hero type-${index}`}><span>{text}</span><b className="caret">|</b></h1><p>Practice DSA with a community that expects more from itself. Solve problems, enter contests, and find your rank.</p><div className="hero-actions"><Link className="button button-yellow" to="/register">Enter the arena <b>↗</b></Link><Link className="button button-outline" to="/leaderboard">View leaderboard</Link></div></div><div className="hero-orbit"><div className="orbit-ring ring-one"/><div className="orbit-ring ring-two"/><div className="orbit-dot dot-a"/><div className="orbit-dot dot-b"/><div className="orbit-center">NYC<br/><small>DSA</small><em>LEVEL 01</em></div><span className="orbit-tag tag-one">RANK UP</span><span className="orbit-tag tag-two">+250 XP</span><span className="orbit-tag tag-three">BATTLE</span><span className="orbit-tag tag-four">STREAK ×7</span></div></section><section className="stat-strip"><div><b>250+</b><span>Problems</span></div><div><b>Every week</b><span>Live contests</span></div><div><b>One goal</b><span>Get better</span></div></section></main></PublicFrame></div>}
