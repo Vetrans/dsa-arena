@@ -31,7 +31,4 @@ const topicSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-topicSchema.index({ slug: 1 }, { unique: true });
-topicSchema.index({ name: 1 }, { unique: true });
-
 export const Topic = mongoose.model('Topic', topicSchema);

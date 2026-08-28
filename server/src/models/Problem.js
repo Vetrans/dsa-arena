@@ -35,8 +35,7 @@ const problemSchema = new mongoose.Schema({
   problemNumber: {
     type: Number,
     required: true,
-    unique: true,
-    index: true
+    unique: true
   },
   title: {
     type: String,
@@ -49,8 +48,7 @@ const problemSchema = new mongoose.Schema({
     required: true,
     unique: true,
     lowercase: true,
-    trim: true,
-    index: true
+    trim: true
   },
   description: {
     type: String,

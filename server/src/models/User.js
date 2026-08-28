@@ -102,8 +102,6 @@ userSchema.methods.toPublicProfile = function() {
   return obj;
 };
 
-userSchema.index({ username: 1 }, { unique: true });
-userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ 'stats.rating': -1 });
 userSchema.index({ 'stats.xp': -1 });
 userSchema.index({ 'stats.problemsSolved': -1 });

@@ -1,6 +1,4 @@
-import 'dotenv/config';
 import mongoose from 'mongoose';
-import app from './src/app.js';
 import { connectDB } from './src/config/db.js';
 import { closeRedis, connectRedis } from './src/config/redis.js';
 import { env } from './src/config/env.js';
@@ -20,4 +18,7 @@ process.on('unhandledRejection', (err) => { logger.fatal({ err }, 'Unhandled rej
 
 await connectDB();
 await connectRedis();
+// The app creates Redis-backed rate-limit stores during module initialization.
+// Load it only after the shared Redis client is connected.
+const { default: app } = await import('./src/app.js');
 server = app.listen(env.PORT, () => logger.info({ port: env.PORT, environment: env.NODE_ENV }, 'API server listening'));
