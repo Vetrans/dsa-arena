@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { authAPI } from '../api/auth';
+import { create } from "zustand";
+import { authAPI } from "../api/auth";
 
 export const useAuthStore = create((set, get) => ({
   user: null,
@@ -20,7 +20,11 @@ export const useAuthStore = create((set, get) => ({
   },
 
   logout: async () => {
-    try { await authAPI.logout(); } catch { /* Cookies may already be expired. */ }
+    try {
+      await authAPI.logout();
+    } catch {
+      /* Cookies may already be expired. */
+    }
     set({ user: null, token: null, isAuthenticated: false });
   },
 
@@ -29,7 +33,12 @@ export const useAuthStore = create((set, get) => ({
       const { data } = await authAPI.getMe();
       set({ user: data.user, isAuthenticated: true, isLoading: false });
     } catch {
-      set({ user: null, token: null, isAuthenticated: false, isLoading: false });
+      set({
+        user: null,
+        token: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
     }
   },
 

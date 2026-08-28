@@ -1,1 +1,21 @@
-export function Pagination({ page, total, onChange }) { return <nav className="pagination" aria-label="Pagination"><button disabled={page === 1} onClick={() => onChange(page - 1)}>← Prev</button>{Array.from({ length: total }, (_, i) => i + 1).map((number) => <button key={number} className={number === page ? 'is-current' : ''} onClick={() => onChange(number)}>{number}</button>)}<button disabled={page === total} onClick={() => onChange(page + 1)}>Next →</button></nav>; }
+export function Pagination({ page, total, onChange }) {
+  return (
+    <nav className="pagination" aria-label="Pagination">
+      <button disabled={page === 1} onClick={() => onChange(page - 1)}>
+        ← Prev
+      </button>
+      {Array.from({ length: total }, (_, i) => i + 1).map((number) => (
+        <button
+          key={number}
+          className={number === page ? "is-current" : ""}
+          onClick={() => onChange(number)}
+        >
+          {number}
+        </button>
+      ))}
+      <button disabled={page === total} onClick={() => onChange(page + 1)}>
+        Next →
+      </button>
+    </nav>
+  );
+}

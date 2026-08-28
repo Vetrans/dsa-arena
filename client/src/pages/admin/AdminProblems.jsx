@@ -1,12 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Edit2, Trash2, CheckCircle, Search, ArrowLeft, Code2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { problemsApi } from '../../api/problems.js';
-import { adminApi } from '../../api/arenaApi.js';
-import { Card, Button, Badge, Input, Modal } from '../../components/ui/index.js';
-import PageLayout from '../../components/layout/PageLayout.jsx';
-import './AdminDashboard.css';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  CheckCircle,
+  Search,
+  ArrowLeft,
+  Code2,
+} from "lucide-react";
+import { toast } from "sonner";
+import { problemsApi } from "../../api/problems.js";
+import { adminApi } from "../../api/arenaApi.js";
+import {
+  Card,
+  Button,
+  Badge,
+  Input,
+  Modal,
+} from "../../components/ui/index.js";
+import PageLayout from "../../components/layout/PageLayout.jsx";
+import "./AdminDashboard.css";
 
 const AdminProblems = () => {
   const [problems, setProblems] = useState([]);
@@ -14,13 +28,13 @@ const AdminProblems = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Form fields for problem creation
-  const [title, setTitle] = useState('');
-  const [difficulty, setDifficulty] = useState('Easy');
-  const [description, setDescription] = useState('');
+  const [title, setTitle] = useState("");
+  const [difficulty, setDifficulty] = useState("Easy");
+  const [description, setDescription] = useState("");
   const [xpReward, setXpReward] = useState(25);
   const [ratingReward, setRatingReward] = useState(15);
-  const [sampleInput, setSampleInput] = useState('');
-  const [sampleOutput, setSampleOutput] = useState('');
+  const [sampleInput, setSampleInput] = useState("");
+  const [sampleOutput, setSampleOutput] = useState("");
 
   const fetchProblems = async () => {
     setIsLoading(true);
@@ -28,7 +42,7 @@ const AdminProblems = () => {
       const { data } = await problemsApi.getProblems({ limit: 50 });
       setProblems(data || []);
     } catch (err) {
-      console.error('Failed to load problems:', err);
+      console.error("Failed to load problems:", err);
     } finally {
       setIsLoading(false);
     }
@@ -41,7 +55,7 @@ const AdminProblems = () => {
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!title.trim() || !description.trim()) {
-      return toast.error('Title and description are required.');
+      return toast.error("Title and description are required.");
     }
 
     try {
@@ -50,29 +64,45 @@ const AdminProblems = () => {
         difficulty,
         description,
         rewards: { xp: Number(xpReward), rating: Number(ratingReward) },
-        examples: [{ input: sampleInput || '[1, 2]', output: sampleOutput || '[2, 1]', explanation: 'Sample' }],
-        testCases: [{ input: sampleInput || '[1, 2]', expected: sampleOutput || '[2, 1]', isHidden: false }],
+        examples: [
+          {
+            input: sampleInput || "[1, 2]",
+            output: sampleOutput || "[2, 1]",
+            explanation: "Sample",
+          },
+        ],
+        testCases: [
+          {
+            input: sampleInput || "[1, 2]",
+            expected: sampleOutput || "[2, 1]",
+            isHidden: false,
+          },
+        ],
         starterCode: {
-          javascript: 'function solution() {\n  // Code here\n}',
-          python: 'def solution():\n    pass'
-        }
+          javascript: "function solution() {\n  // Code here\n}",
+          python: "def solution():\n    pass",
+        },
       });
-      toast.success('Problem created successfully!');
+      toast.success("Problem created successfully!");
       setShowCreateModal(false);
       fetchProblems();
     } catch (err) {
-      toast.error('Failed to create problem.');
+      toast.error("Failed to create problem.");
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this problem from the catalog?')) {
+    if (
+      window.confirm(
+        "Are you sure you want to delete this problem from the catalog?",
+      )
+    ) {
       try {
         await adminApi.deleteProblem(id);
-        toast.success('Problem deleted.');
+        toast.success("Problem deleted.");
         fetchProblems();
       } catch (err) {
-        toast.error('Failed to delete problem.');
+        toast.error("Failed to delete problem.");
       }
     }
   };
@@ -86,7 +116,9 @@ const AdminProblems = () => {
               <ArrowLeft size={16} /> Back to Admin Overview
             </Link>
             <h1 className="admin-title">Problem Catalog Management</h1>
-            <p className="admin-subtitle">Create, edit, and publish algorithmic challenges.</p>
+            <p className="admin-subtitle">
+              Create, edit, and publish algorithmic challenges.
+            </p>
           </div>
 
           <Button onClick={() => setShowCreateModal(true)}>
@@ -102,18 +134,28 @@ const AdminProblems = () => {
                 <div>
                   <h4 className="prob-item-title">{p.title}</h4>
                   <div className="prob-item-tags">
-                    <Badge variant={p.difficulty.toLowerCase()}>{p.difficulty}</Badge>
+                    <Badge variant={p.difficulty.toLowerCase()}>
+                      {p.difficulty}
+                    </Badge>
                     <span className="tag-meta">+{p.rewards?.xp || 15} XP</span>
-                    <span className="tag-meta">+{p.rewards?.rating || 10} Rating</span>
+                    <span className="tag-meta">
+                      +{p.rewards?.rating || 10} Rating
+                    </span>
                   </div>
                 </div>
               </div>
 
               <div className="prob-item-actions">
                 <Link to={`/problems/${p.slug}`}>
-                  <Button size="sm" variant="outline">Preview</Button>
+                  <Button size="sm" variant="outline">
+                    Preview
+                  </Button>
                 </Link>
-                <Button size="sm" variant="danger" onClick={() => handleDelete(p._id)}>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={() => handleDelete(p._id)}
+                >
                   <Trash2 size={14} /> Delete
                 </Button>
               </div>
@@ -205,7 +247,11 @@ const AdminProblems = () => {
             </div>
 
             <div className="modal-actions-right">
-              <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowCreateModal(false)}
+              >
                 Cancel
               </Button>
               <Button type="submit" variant="primary">

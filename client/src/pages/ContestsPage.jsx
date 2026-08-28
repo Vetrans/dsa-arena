@@ -1,6 +1,48 @@
-import { Link } from 'react-router-dom';
-import { PublicFrame } from '../components/app/PublicHeader.jsx';
-import { useDemoAuth } from '../store/demoAuthStore.js';
-import { useReveal } from '../hooks/useReveal.js';
-const contests=[['NYC Weekly #07','Live now','02:14:28','4 problems'],['Monsoon Algorithm Sprint','Starts Friday','18:00 IST','5 problems'],['Graph Theory Night','Starts Sep 03','19:30 IST','3 problems']];
-export function ContestsPage(){const {user}=useDemoAuth();const root=useReveal();return <PublicFrame><section ref={root} className="screen-page"><div data-reveal className="page-heading"><p className="eyebrow">COMPETE WITH NYC</p><h1>Contests</h1><p>Timed challenges, fair ratings, and plenty of reasons to come back sharper.</p></div><div className="contest-grid">{contests.map(([name,status,time,problems],index)=><article data-reveal className="contest-card" key={name}><span className={index===0?'live-pill':'date-pill'}>{status}</span><h2>{name}</h2><p>{problems} · {time}</p><Link className={index===0?'button button-yellow':'button button-outline'} to={user?'/contests/nyc-weekly-07':'/register'}>{user?'View contest':'Register to compete'}</Link></article>)}</div></section></PublicFrame>;}
+import { Link } from "react-router-dom";
+import { PublicFrame } from "../components/app/PublicHeader.jsx";
+import { useDemoAuth } from "../store/demoAuthStore.js";
+import { useReveal } from "../hooks/useReveal.js";
+const contests = [
+  ["NYC Weekly #07", "Live now", "02:14:28", "4 problems"],
+  ["Monsoon Algorithm Sprint", "Starts Friday", "18:00 IST", "5 problems"],
+  ["Graph Theory Night", "Starts Sep 03", "19:30 IST", "3 problems"],
+];
+export function ContestsPage() {
+  const { user } = useDemoAuth();
+  const root = useReveal();
+  return (
+    <PublicFrame>
+      <section ref={root} className="screen-page">
+        <div data-reveal className="page-heading">
+          <p className="eyebrow">COMPETE WITH NYC</p>
+          <h1>Contests</h1>
+          <p>
+            Timed challenges, fair ratings, and plenty of reasons to come back
+            sharper.
+          </p>
+        </div>
+        <div className="contest-grid">
+          {contests.map(([name, status, time, problems], index) => (
+            <article data-reveal className="contest-card" key={name}>
+              <span className={index === 0 ? "live-pill" : "date-pill"}>
+                {status}
+              </span>
+              <h2>{name}</h2>
+              <p>
+                {problems} · {time}
+              </p>
+              <Link
+                className={
+                  index === 0 ? "button button-yellow" : "button button-outline"
+                }
+                to={user ? "/contests/nyc-weekly-07" : "/register"}
+              >
+                {user ? "View contest" : "Register to compete"}
+              </Link>
+            </article>
+          ))}
+        </div>
+      </section>
+    </PublicFrame>
+  );
+}

@@ -1,5 +1,64 @@
-import { Link } from 'react-router-dom';
-import logo from '../../assets/nyc-logo.jpg';
-import './Footer.css';
-const columns = [['Arena', [['Problems', '/problems'], ['Contests', '/contests'], ['Leaderboard', '/leaderboard']]], ['Community', [['Discord', 'https://discord.com'], ['Roadmap', '/roadmap'], ['Discussions', '/discussions']]], ['Account', [['Join arena', '/register'], ['Log in', '/login'], ['Settings', '/settings']]]];
-export function Footer() { return <footer className="site-footer"><div className="footer-main"><Link className="brand" to="/"><img src={logo} alt="Not Your College"/><span>DSA Arena</span></Link><p>Not your college. Your competitive edge.</p><div className="footer-links">{columns.map(([title, links]) => <div key={title}><b>{title}</b>{links.map(([label, to]) => to.startsWith('http') ? <a key={label} href={to} target="_blank" rel="noreferrer">{label} ↗</a> : <Link key={label} to={to}>{label}</Link>)}</div>)}</div></div><div className="footer-base"><span>© {new Date().getFullYear()} NYC DSA Arena</span><span>Built for the NYC Discord community</span></div></footer>}
+import { Link } from "react-router-dom";
+import logo from "../../assets/nyc-logo.jpg";
+import "./Footer.css";
+const columns = [
+  [
+    "Arena",
+    [
+      ["Problems", "/problems"],
+      ["Contests", "/contests"],
+      ["Leaderboard", "/leaderboard"],
+    ],
+  ],
+  [
+    "Community",
+    [
+      ["Discord", "https://discord.com"],
+      ["Roadmap", "/roadmap"],
+      ["Discussions", "/discussions"],
+    ],
+  ],
+  [
+    "Account",
+    [
+      ["Join arena", "/register"],
+      ["Log in", "/login"],
+      ["Settings", "/settings"],
+    ],
+  ],
+];
+export function Footer() {
+  return (
+    <footer className="site-footer">
+      <div className="footer-main">
+        <Link className="brand" to="/">
+          <img src={logo} alt="Not Your College" />
+          <span>DSA Arena</span>
+        </Link>
+        <p>Not your college. Your competitive edge.</p>
+        <div className="footer-links">
+          {columns.map(([title, links]) => (
+            <div key={title}>
+              <b>{title}</b>
+              {links.map(([label, to]) =>
+                to.startsWith("http") ? (
+                  <a key={label} href={to} target="_blank" rel="noreferrer">
+                    {label} ↗
+                  </a>
+                ) : (
+                  <Link key={label} to={to}>
+                    {label}
+                  </Link>
+                ),
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="footer-base">
+        <span>© {new Date().getFullYear()} NYC DSA Arena</span>
+        <span>Built for the NYC Discord community</span>
+      </div>
+    </footer>
+  );
+}
