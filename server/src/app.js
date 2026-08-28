@@ -2,10 +2,13 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import compression from 'compression';
-import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 import { apiLimiter } from './middlewares/rateLimiter.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { error } from './utils/apiResponse.js';
+import { env } from './config/env.js';
+import { requestContext } from './middlewares/requestContext.js';
+import healthRoutes from './routes/healthRoutes.js';
 
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
@@ -24,25 +27,27 @@ import analyticsRoutes from './routes/analyticsRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 
 const app = express();
+app.set('trust proxy', 1);
+app.use(requestContext);
 
 // Security & Optimization Middleware
 app.use(helmet());
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
 app.use(compression());
-
-if (process.env.NODE_ENV !== 'production') {
-  app.use(morgan('dev'));
-}
 
 // Body parsers
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
+
+app.use('/health', healthRoutes);
 
 // Rate limiting
 app.use('/api', apiLimiter);
 
 // API Routes
-app.use('/api/auth', authRoutes);
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/auth', authRoutes); // Temporary compatibility route; remove after client migration.
 app.use('/api/users', userRoutes);
 app.use('/api/problems', problemRoutes);
 app.use('/api/topics', topicRoutes);

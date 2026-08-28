@@ -6,9 +6,10 @@ export const success = (res, data, message = 'Success', statusCode = 200) => {
   });
 };
 
-export const error = (res, message = 'Error', statusCode = 500, errors = null) => {
+export const error = (res, message = 'Error', statusCode = 500, code = 'INTERNAL_ERROR', errors = null) => {
   const response = {
     success: false,
+    code,
     message
   };
   if (errors) {

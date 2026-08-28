@@ -1,10 +1,11 @@
 import client from './client';
 
 export const authApi = {
-  register: (data) => client.post('/auth/register', data),
-  login: (data) => client.post('/auth/login', data),
-  logout: () => client.post('/auth/logout'),
-  getMe: () => client.get('/auth/me'),
+  register: (data) => client.post('/v1/auth/register', data),
+  login: (data) => client.post('/v1/auth/login', data),
+  logout: () => client.post('/v1/auth/logout'),
+  getMe: () => client.get('/v1/auth/me'),
+  refresh: () => client.post('/v1/auth/refresh'),
 };
 
 // Alias for consistency

@@ -1,34 +1,23 @@
-import * as dotenv from 'dotenv';
-import { connectDB } from './src/config/db.js';
-
-// 1. Load dotenv
-dotenv.config();
-
-// 2. Import app
+import 'dotenv/config';
+import mongoose from 'mongoose';
 import app from './src/app.js';
+import { connectDB } from './src/config/db.js';
+import { closeRedis, connectRedis } from './src/config/redis.js';
+import { env } from './src/config/env.js';
+import { logger } from './src/config/logger.js';
 
-const PORT = process.env.PORT || 5000;
+let server;
+const shutdown = async (signal) => {
+  logger.info({ signal }, 'Graceful shutdown started');
+  if (server) await new Promise((resolve) => server.close(resolve));
+  await Promise.allSettled([mongoose.disconnect(), closeRedis()]);
+  process.exit(0);
+};
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('uncaughtException', (err) => { logger.fatal({ err }, 'Uncaught exception'); shutdown('uncaughtException'); });
+process.on('unhandledRejection', (err) => { logger.fatal({ err }, 'Unhandled rejection'); shutdown('unhandledRejection'); });
 
-// Handle uncaught exceptions
-process.on('uncaughtException', (err) => {
-  console.error('UNCAUGHT EXCEPTION! Shutting down...');
-  console.error(err.name, err.message);
-  process.exit(1);
-});
-
-// 3. Connect to MongoDB
-connectDB().then(() => {
-  // 4. Start listening on PORT
-  const server = app.listen(PORT, () => {
-    console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-  });
-
-  // 5. Handle unhandled rejections
-  process.on('unhandledRejection', (err) => {
-    console.error('UNHANDLED REJECTION! Shutting down...');
-    console.error(err.name, err.message);
-    server.close(() => {
-      process.exit(1);
-    });
-  });
-});
+await connectDB();
+await connectRedis();
+server = app.listen(env.PORT, () => logger.info({ port: env.PORT, environment: env.NODE_ENV }, 'API server listening'));

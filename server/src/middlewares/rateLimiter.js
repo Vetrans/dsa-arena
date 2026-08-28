@@ -1,28 +1,7 @@
 import rateLimit from 'express-rate-limit';
-
-export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 20,
-  message: {
-    success: false,
-    message: 'Too many auth requests from this IP, please try again after 15 minutes'
-  }
-});
-
-export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 100,
-  message: {
-    success: false,
-    message: 'Too many requests from this IP, please try again after 15 minutes'
-  }
-});
-
-export const submissionLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  limit: 10,
-  message: {
-    success: false,
-    message: 'Too many submissions, please wait a minute'
-  }
-});
+import { RedisStore } from 'rate-limit-redis';
+import { redis } from '../config/redis.js';
+const createLimiter = (prefix, windowMs, limit) => rateLimit({ windowMs, limit, standardHeaders: 'draft-7', legacyHeaders: false, store: new RedisStore({ prefix: `rl:${prefix}:`, sendCommand: (...args) => redis.sendCommand(args) }), handler: (req, res) => res.status(429).json({ success: false, code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' }) });
+export const authLimiter = createLimiter('auth', 15 * 60 * 1000, 20);
+export const apiLimiter = createLimiter('api', 15 * 60 * 1000, 300);
+export const submissionLimiter = createLimiter('submission', 60 * 1000, 10);

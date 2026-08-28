@@ -6,10 +6,15 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "seed": "node src/seed/index.js"
+    "seed": "node src/seed/index.js",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.js"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
+    "@socket.io/redis-adapter": "^8.3.0",
+    "argon2": "^0.41.1",
+    "bullmq": "^5.12.12",
+    "cookie-parser": "^1.4.6",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -19,12 +24,19 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.4.1",
-    "morgan": "^1.10.0",
+    "pino": "^9.3.2",
+    "pino-http": "^10.3.0",
+    "rate-limit-redis": "^4.2.0",
+    "redis": "^5.0.0",
     "node-cron": "^3.0.3",
     "sanitize-html": "^2.13.0",
-    "slugify": "^1.6.6"
+    "slugify": "^1.6.6",
+    "socket.io": "^4.7.5",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "nodemon": "^3.1.4"
+    "nodemon": "^3.1.4",
+    "supertest": "^7.0.0",
+    "vitest": "^2.0.5"
   }
 }

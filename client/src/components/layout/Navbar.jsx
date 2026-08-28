@@ -93,7 +93,7 @@ export const Navbar = () => {
                     
                     <div className="dropdown-divider"></div>
                     
-                    <Link to="/profile" className="dropdown-item" onClick={() => setDropdownOpen(false)}>
+                    <Link to={`/profile/${user?.username}`} className="dropdown-item" onClick={() => setDropdownOpen(false)}>
                       <User size={16} /> Profile
                     </Link>
                     <Link to="/dashboard" className="dropdown-item" onClick={() => setDropdownOpen(false)}>

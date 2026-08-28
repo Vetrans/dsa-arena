@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
+import argon2 from 'argon2';
 
 const userSchema = new mongoose.Schema({
   username: {
@@ -39,7 +39,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['USER', 'MODERATOR', 'ADMIN'],
+    enum: ['USER', 'STAFF', 'MODERATOR', 'ADMIN', 'SUPER_ADMIN'],
     default: 'USER'
   },
   stats: {
@@ -77,8 +77,12 @@ const userSchema = new mongoose.Schema({
 userSchema.pre('save', async function(next) {
   if (!this.isModified('passwordHash')) return next();
   try {
-    const salt = await bcrypt.genSalt(12);
-    this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
+    this.passwordHash = await argon2.hash(this.passwordHash, {
+      type: argon2.argon2id,
+      memoryCost: 19456,
+      timeCost: 2,
+      parallelism: 1,
+    });
     next();
   } catch (error) {
     next(error);
@@ -86,7 +90,7 @@ userSchema.pre('save', async function(next) {
 });
 
 userSchema.methods.comparePassword = async function(candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.passwordHash);
+  return argon2.verify(this.passwordHash, candidatePassword);
 };
 
 userSchema.methods.toPublicProfile = function() {

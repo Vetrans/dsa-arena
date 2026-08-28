@@ -1,19 +1,21 @@
 import mongoose from 'mongoose';
+import { env } from './env.js';
+import { logger } from './logger.js';
 
 export const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI);
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    const conn = await mongoose.connect(env.MONGODB_URI, { maxPoolSize: 50, minPoolSize: 5, serverSelectionTimeoutMS: 10000 });
+    logger.info({ host: conn.connection.host }, 'MongoDB connected');
   } catch (error) {
-    console.error(`Error connecting to MongoDB: ${error.message}`);
-    process.exit(1);
+    logger.error({ err: error }, 'MongoDB connection failed');
+    throw error;
   }
 };
 
 mongoose.connection.on('disconnected', () => {
-  console.log('MongoDB disconnected');
+  logger.warn('MongoDB disconnected');
 });
 
 mongoose.connection.on('error', (err) => {
-  console.error(`MongoDB connection error: ${err}`);
+  logger.error({ err }, 'MongoDB connection error');
 });

@@ -12,5 +12,19 @@ export default defineConfig({
         changeOrigin: true
       }
     }
+  },
+  build: {
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui': ['framer-motion', 'lucide-react', 'sonner'],
+          'vendor-state': ['zustand', '@tanstack/react-query'],
+          'vendor-charts': ['recharts'],
+          'vendor-editor': ['@monaco-editor/react'],
+        }
+      }
+    }
   }
 })

@@ -1,4 +1,5 @@
 export { User } from './User.js';
+export { Session } from './Session.js';
 export { Topic } from './Topic.js';
 export { Problem } from './Problem.js';
 export { Submission } from './Submission.js';
