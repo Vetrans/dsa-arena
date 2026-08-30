@@ -2,21 +2,12 @@ import { Link, NavLink } from "react-router-dom";
 import logo from "../../assets/nyc-logo.jpg";
 import { useDemoAuth } from "../../store/demoAuthStore.js";
 import { Footer } from "./Footer.jsx";
+import { APP_NAV_LINKS, PUBLIC_NAV_LINKS } from "../../config/navigation.js";
+
 export function PublicHeader() {
   const { user, logout } = useDemoAuth();
-  const links = user
-    ? [
-        ["Dashboard", "/dashboard"],
-        ["Problems", "/problems"],
-        ["Contests", "/contests"],
-        ["Leaderboard", "/leaderboard"],
-        ["Roadmap", "/roadmap"],
-        ["Community", "/discussions"],
-      ]
-    : [
-        ["Leaderboard", "/leaderboard"],
-        ["Contests", "/contests"],
-      ];
+  const links = user ? APP_NAV_LINKS : PUBLIC_NAV_LINKS;
+
   return (
     <header className="site-header">
       <Link className="brand" to={user ? "/dashboard" : "/"}>
@@ -24,7 +15,7 @@ export function PublicHeader() {
         <span>DSA Arena</span>
       </Link>
       <nav>
-        {links.map(([label, to]) => (
+        {links.map(({ label, to }) => (
           <NavLink key={to} to={to}>
             {label}
           </NavLink>
@@ -33,7 +24,13 @@ export function PublicHeader() {
       <div className="header-actions">
         {user ? (
           <>
-            <Link className="user-chip" to="/dashboard">
+            <Link className="admin-chip" to="/admin" title="Admin Control Console">
+              🛡️ Admin
+            </Link>
+            <Link className="settings-chip" to="/settings" title="User Settings">
+              ⚙️
+            </Link>
+            <Link className="user-chip" to={`/profile/${user.username}`}>
               @{user.username}
             </Link>
             <button className="text-button" onClick={logout}>

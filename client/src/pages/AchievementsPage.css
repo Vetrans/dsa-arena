@@ -1,0 +1,174 @@
+/* Achievements Page Styles */
+
+.achievements-page {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 32px clamp(16px, 4vw, 40px);
+}
+
+.achievements-header {
+  margin-bottom: 36px;
+}
+
+.achievements-header h1 {
+  font-size: clamp(28px, 4vw, 36px);
+  font-weight: 900;
+  margin: 4px 0 8px;
+}
+
+.achievements-header p {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.ach-category-section {
+  margin-bottom: 36px;
+}
+
+.cat-title {
+  font-size: 18px;
+  font-weight: 900;
+  margin: 0 0 16px;
+  border-bottom: 2px solid var(--line);
+  padding-bottom: 8px;
+}
+
+.ach-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.ach-card {
+  background: #fff;
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.ach-locked {
+  opacity: 0.85;
+}
+
+.ach-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.ach-icon {
+  font-size: 28px;
+}
+
+.rarity-tag {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.rarity-common {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.rarity-uncommon {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.rarity-rare {
+  background: #e0e7ff;
+  color: #1742e8;
+}
+
+.rarity-epic {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.ach-card h3 {
+  font-size: 16px;
+  font-weight: 800;
+  margin: 0 0 6px;
+}
+
+.ach-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+
+.ach-progress-bar {
+  height: 6px;
+  background: #f1f5f9;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.ach-fill {
+  height: 100%;
+  background: var(--nyc-yellow);
+}
+
+.ach-progress-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.ach-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.ach-reward {
+  font-size: 13px;
+  font-weight: 900;
+  color: #1742e8;
+}
+
+.claimed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #16a34a;
+}
+
+.locked-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.claim-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--nyc-yellow);
+  border: 1.5px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  font-size: 11px;
+  font-weight: 900;
+  padding: 4px 10px;
+  cursor: pointer;
+}

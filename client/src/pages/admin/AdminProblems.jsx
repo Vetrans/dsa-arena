@@ -1,268 +1,329 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
 import {
+  Code2,
   Plus,
   Edit2,
   Trash2,
   CheckCircle,
-  Search,
-  ArrowLeft,
-  Code2,
+  Eye,
+  FileCode2,
+  Search
 } from "lucide-react";
-import { toast } from "sonner";
-import { problemsApi } from "../../api/problems.js";
-import { adminApi } from "../../api/arenaApi.js";
-import {
-  Card,
-  Button,
-  Badge,
-  Input,
-  Modal,
-} from "../../components/ui/index.js";
-import PageLayout from "../../components/layout/PageLayout.jsx";
-import "./AdminDashboard.css";
+import { PROBLEMS } from "../../data/problemsData.js";
 
-const AdminProblems = () => {
-  const [problems, setProblems] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+export function AdminProblems() {
+  const [problemList, setProblemList] = useState(PROBLEMS);
+  const [search, setSearch] = useState("");
+  const [showModal, setShowModal] = useState(false);
 
-  // Form fields for problem creation
+  // Form state
   const [title, setTitle] = useState("");
-  const [difficulty, setDifficulty] = useState("Easy");
+  const [slug, setSlug] = useState("");
+  const [difficulty, setDifficulty] = useState("Medium");
+  const [topics, setTopics] = useState("Arrays, Hashing");
   const [description, setDescription] = useState("");
-  const [xpReward, setXpReward] = useState(25);
-  const [ratingReward, setRatingReward] = useState(15);
+  const [xpReward, setXpReward] = useState(35);
+  const [ratingReward, setRatingReward] = useState(25);
   const [sampleInput, setSampleInput] = useState("");
   const [sampleOutput, setSampleOutput] = useState("");
+  const [starterJs, setStarterJs] = useState("function solution(input) {\n  // Write code\n}");
+  const [starterPy, setStarterPy] = useState("def solution(input):\n    # Write code\n    pass");
+  const [starterCpp, setStarterCpp] = useState("class Solution {\npublic:\n    void solve() {}\n};");
 
-  const fetchProblems = async () => {
-    setIsLoading(true);
-    try {
-      const { data } = await problemsApi.getProblems({ limit: 50 });
-      setProblems(data || []);
-    } catch (err) {
-      console.error("Failed to load problems:", err);
-    } finally {
-      setIsLoading(false);
-    }
+  const filtered = problemList.filter(
+    (p) =>
+      p.title.toLowerCase().includes(search.toLowerCase()) ||
+      p.slug.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleTitleChange = (val) => {
+    setTitle(val);
+    setSlug(
+      val
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "")
+    );
   };
 
-  useEffect(() => {
-    fetchProblems();
-  }, []);
-
-  const handleCreate = async (e) => {
+  const handleAddProblem = (e) => {
     e.preventDefault();
-    if (!title.trim() || !description.trim()) {
-      return toast.error("Title and description are required.");
-    }
+    if (!title.trim()) return;
 
-    try {
-      await adminApi.createProblem({
-        title,
-        difficulty,
-        description,
-        rewards: { xp: Number(xpReward), rating: Number(ratingReward) },
-        examples: [
-          {
-            input: sampleInput || "[1, 2]",
-            output: sampleOutput || "[2, 1]",
-            explanation: "Sample",
-          },
-        ],
-        testCases: [
-          {
-            input: sampleInput || "[1, 2]",
-            expected: sampleOutput || "[2, 1]",
-            isHidden: false,
-          },
-        ],
-        starterCode: {
-          javascript: "function solution() {\n  // Code here\n}",
-          python: "def solution():\n    pass",
-        },
-      });
-      toast.success("Problem created successfully!");
-      setShowCreateModal(false);
-      fetchProblems();
-    } catch (err) {
-      toast.error("Failed to create problem.");
-    }
+    const newProb = {
+      id: slug || `prob-${Date.now()}`,
+      problemNumber: problemList.length + 1,
+      title,
+      slug,
+      difficulty,
+      topics: topics.split(",").map((t) => t.trim()),
+      topicSlugs: topics.split(",").map((t) => t.trim().toLowerCase().replace(/\s+/g, "-")),
+      tags: topics.split(",").map((t) => t.trim()),
+      acceptance: "50.0%",
+      rewards: { xp: Number(xpReward), rating: Number(ratingReward) },
+      description,
+      examples: [
+        {
+          input: sampleInput || "input = 1",
+          output: sampleOutput || "output = 1",
+          explanation: "Standard case"
+        }
+      ],
+      constraints: ["1 <= input <= 10^5"],
+      hints: [{ order: 1, content: "Think about optimal subproblems." }],
+      editorial: {
+        approach: "Optimal Algorithm",
+        intuition: "Linear scan with cache.",
+        timeComplexity: "O(N)",
+        spaceComplexity: "O(1)",
+        solutionCode: starterJs
+      },
+      testCases: [
+        { input: sampleInput || "1", expected: sampleOutput || "1", isHidden: false },
+        { input: "2", expected: "2", isHidden: true }
+      ],
+      starterCode: {
+        javascript: starterJs,
+        python: starterPy,
+        cpp: starterCpp,
+        java: "class Solution {\n    public void solve() {}\n}"
+      }
+    };
+
+    setProblemList([...problemList, newProb]);
+    setShowModal(false);
+    setTitle("");
+    setSlug("");
+    setDescription("");
   };
 
-  const handleDelete = async (id) => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete this problem from the catalog?",
-      )
-    ) {
-      try {
-        await adminApi.deleteProblem(id);
-        toast.success("Problem deleted.");
-        fetchProblems();
-      } catch (err) {
-        toast.error("Failed to delete problem.");
-      }
+  const handleDelete = (slugToDelete) => {
+    if (window.confirm(`Delete problem '${slugToDelete}' from vault?`)) {
+      setProblemList(problemList.filter((p) => p.slug !== slugToDelete));
     }
   };
 
   return (
-    <PageLayout>
-      <div className="admin-container">
-        <div className="admin-header">
-          <div>
-            <Link to="/admin" className="back-link">
-              <ArrowLeft size={16} /> Back to Admin Overview
-            </Link>
-            <h1 className="admin-title">Problem Catalog Management</h1>
-            <p className="admin-subtitle">
-              Create, edit, and publish algorithmic challenges.
-            </p>
-          </div>
+    <div className="admin-problems-page">
+      <div className="admin-page-header">
+        <div>
+          <h1>Problem Vault Management</h1>
+          <p>Author, modify, and manage DSA challenges, test cases, and starter templates.</p>
+        </div>
+        <button
+          className="button button-yellow"
+          onClick={() => setShowModal(true)}
+        >
+          <Plus size={16} /> Add New Problem
+        </button>
+      </div>
 
-          <Button onClick={() => setShowCreateModal(true)}>
-            <Plus size={16} /> Create New Problem
-          </Button>
+      <div className="admin-table-card">
+        <div className="admin-table-card-head">
+          <h2>All Problems ({problemList.length})</h2>
+          <input
+            type="text"
+            placeholder="Search problems..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              padding: "6px 12px",
+              border: "1.5px solid var(--ink)",
+              fontSize: "13px"
+            }}
+          />
         </div>
 
-        <div className="admin-problems-list">
-          {problems.map((p) => (
-            <Card key={p._id} className="admin-prob-item">
-              <div className="prob-item-left">
-                <span className="prob-num">#{p.problemNumber}</span>
-                <div>
-                  <h4 className="prob-item-title">{p.title}</h4>
-                  <div className="prob-item-tags">
-                    <Badge variant={p.difficulty.toLowerCase()}>
-                      {p.difficulty}
-                    </Badge>
-                    <span className="tag-meta">+{p.rewards?.xp || 15} XP</span>
-                    <span className="tag-meta">
-                      +{p.rewards?.rating || 10} Rating
-                    </span>
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Title</th>
+              <th>Difficulty</th>
+              <th>Topics</th>
+              <th>Acceptance</th>
+              <th>Rewards</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((prob) => (
+              <tr key={prob.slug}>
+                <td>{prob.problemNumber}</td>
+                <td>
+                  <b>{prob.title}</b>
+                  <div style={{ fontSize: "11px", color: "var(--muted)" }}>
+                    /{prob.slug}
                   </div>
+                </td>
+                <td>
+                  <span
+                    className={`diff-pill diff-${prob.difficulty.toLowerCase()}`}
+                  >
+                    {prob.difficulty}
+                  </span>
+                </td>
+                <td>
+                  <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+                    {prob.topics.map((t) => (
+                      <span
+                        key={t}
+                        style={{
+                          fontSize: "10px",
+                          background: "#f1f5f9",
+                          padding: "2px 6px",
+                          borderRadius: "3px"
+                        }}
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </td>
+                <td>{prob.acceptance}</td>
+                <td>
+                  +{prob.rewards?.xp || 20} XP · +{prob.rewards?.rating || 15} PTS
+                </td>
+                <td>
+                  <button
+                    onClick={() => handleDelete(prob.slug)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#dc2626",
+                      cursor: "pointer"
+                    }}
+                    title="Delete Problem"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Add Problem Modal */}
+      {showModal && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-card">
+            <h2>Add New DSA Problem to Vault</h2>
+            <p>Author description, test cases, and multi-language boilerplates.</p>
+
+            <form onSubmit={handleAddProblem}>
+              <div className="admin-form-row">
+                <div className="admin-form-group">
+                  <label>Problem Title:</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Trapping Rain Water"
+                    value={title}
+                    onChange={(e) => handleTitleChange(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="admin-form-group">
+                  <label>Difficulty:</label>
+                  <select
+                    value={difficulty}
+                    onChange={(e) => setDifficulty(e.target.value)}
+                  >
+                    <option value="Easy">Easy</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Hard">Hard</option>
+                  </select>
                 </div>
               </div>
 
-              <div className="prob-item-actions">
-                <Link to={`/problems/${p.slug}`}>
-                  <Button size="sm" variant="outline">
-                    Preview
-                  </Button>
-                </Link>
-                <Button
-                  size="sm"
-                  variant="danger"
-                  onClick={() => handleDelete(p._id)}
-                >
-                  <Trash2 size={14} /> Delete
-                </Button>
+              <div className="admin-form-row">
+                <div className="admin-form-group">
+                  <label>URL Slug:</label>
+                  <input
+                    type="text"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="admin-form-group">
+                  <label>Topics (comma-separated):</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Arrays, Two Pointers, Stack"
+                    value={topics}
+                    onChange={(e) => setTopics(e.target.value)}
+                  />
+                </div>
               </div>
-            </Card>
-          ))}
+
+              <div className="admin-form-group">
+                <label>Problem Description (Markdown supported):</label>
+                <textarea
+                  rows={4}
+                  placeholder="Given an array of integers..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="admin-form-row">
+                <div className="admin-form-group">
+                  <label>Sample Input:</label>
+                  <input
+                    type="text"
+                    placeholder="[0,1,0,2,1,0,1,3,2,1,2,1]"
+                    value={sampleInput}
+                    onChange={(e) => setSampleInput(e.target.value)}
+                  />
+                </div>
+                <div className="admin-form-group">
+                  <label>Sample Expected Output:</label>
+                  <input
+                    type="text"
+                    placeholder="6"
+                    value={sampleOutput}
+                    onChange={(e) => setSampleOutput(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="admin-form-row">
+                <div className="admin-form-group">
+                  <label>JavaScript Starter Code:</label>
+                  <textarea
+                    rows={3}
+                    value={starterJs}
+                    onChange={(e) => setStarterJs(e.target.value)}
+                  />
+                </div>
+                <div className="admin-form-group">
+                  <label>Python Starter Code:</label>
+                  <textarea
+                    rows={3}
+                    value={starterPy}
+                    onChange={(e) => setStarterPy(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="admin-modal-actions">
+                <button
+                  type="button"
+                  className="button button-outline"
+                  onClick={() => setShowModal(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="button button-yellow">
+                  Save Problem to Vault
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-
-        {/* Create Problem Modal */}
-        <Modal
-          isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          title="Create New DSA Problem"
-          size="lg"
-        >
-          <form onSubmit={handleCreate} className="admin-modal-form">
-            <div className="form-group">
-              <label>Problem Title</label>
-              <Input
-                placeholder="e.g. Merge K Sorted Lists"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="form-row-2">
-              <div className="form-group">
-                <label>Difficulty</label>
-                <select
-                  value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value)}
-                  className="admin-select"
-                >
-                  <option value="Easy">Easy</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Hard">Hard</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>XP Reward</label>
-                <Input
-                  type="number"
-                  value={xpReward}
-                  onChange={(e) => setXpReward(e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Rating Reward</label>
-                <Input
-                  type="number"
-                  value={ratingReward}
-                  onChange={(e) => setRatingReward(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>Problem Description (Markdown)</label>
-              <textarea
-                rows={5}
-                placeholder="Describe the problem statement, constraints, etc."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="admin-textarea"
-                required
-              />
-            </div>
-
-            <div className="form-row-2">
-              <div className="form-group">
-                <label>Sample Test Case Input</label>
-                <Input
-                  placeholder="[2, 7, 11, 15], 9"
-                  value={sampleInput}
-                  onChange={(e) => setSampleInput(e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Sample Test Case Expected Output</label>
-                <Input
-                  placeholder="[0, 1]"
-                  value={sampleOutput}
-                  onChange={(e) => setSampleOutput(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="modal-actions-right">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowCreateModal(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" variant="primary">
-                Publish Problem
-              </Button>
-            </div>
-          </form>
-        </Modal>
-      </div>
-    </PageLayout>
+      )}
+    </div>
   );
-};
-
-export default AdminProblems;
+}

@@ -1,159 +1,157 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Users,
   Code2,
-  FileCode,
+  Trophy,
   MessageSquare,
-  AlertTriangle,
-  CheckCircle2,
-  TrendingUp,
-  Shield,
   Plus,
+  Shield,
+  TrendingUp,
+  Activity,
+  ArrowRight
 } from "lucide-react";
-import { adminApi } from "../../api/arenaApi.js";
-import { Card, Button, Badge } from "../../components/ui/index.js";
-import PageLayout from "../../components/layout/PageLayout.jsx";
-import "./AdminDashboard.css";
+import { PROBLEMS } from "../../data/problemsData.js";
+import { useArenaStore } from "../../store/arenaStore.js";
 
-const AdminDashboard = () => {
-  const [stats, setStats] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+export function AdminDashboard() {
+  const { submissions } = useArenaStore();
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      setIsLoading(true);
-      try {
-        const { data } = await adminApi.getDashboardStats();
-        setStats(data);
-      } catch (err) {
-        console.error("Error fetching admin stats:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, []);
-
-  if (isLoading || !stats) {
-    return (
-      <PageLayout>
-        <div className="admin-loading">
-          <div className="spinner"></div>
-          <p>Loading Arena Administration Console...</p>
-        </div>
-      </PageLayout>
-    );
-  }
-
-  const { metrics, recentSubmissions } = stats;
+  const metrics = [
+    {
+      label: "TOTAL REGISTERED USERS",
+      val: "4,820",
+      icon: Users,
+      colorClass: "am-icon-users"
+    },
+    {
+      label: "ACTIVE PROBLEMS IN VAULT",
+      val: String(PROBLEMS.length),
+      icon: Code2,
+      colorClass: "am-icon-problems"
+    },
+    {
+      label: "CONTESTS HOSTED",
+      val: "12",
+      icon: Trophy,
+      colorClass: "am-icon-contests"
+    },
+    {
+      label: "OPEN BUG REPORTS",
+      val: "3",
+      icon: MessageSquare,
+      colorClass: "am-icon-feedback"
+    }
+  ];
 
   return (
-    <PageLayout>
-      <div className="admin-container">
-        <div className="admin-header">
-          <div>
-            <div className="admin-badge-top">
-              <Shield size={14} /> Arena Administration Console
-            </div>
-            <h1 className="admin-title">System Overview & Management</h1>
-            <p className="admin-subtitle">
-              Monitor platform metrics, curate DSA problems, manage users, and
-              review feedback.
-            </p>
-          </div>
-
-          <div className="admin-actions-bar">
-            <Link to="/admin/problems">
-              <Button size="sm">
-                <Plus size={16} /> Manage Problems
-              </Button>
-            </Link>
-            <Link to="/admin/users">
-              <Button size="sm" variant="outline">
-                <Users size={16} /> Users
-              </Button>
-            </Link>
-            <Link to="/admin/feedback">
-              <Button size="sm" variant="outline">
-                <MessageSquare size={16} /> Feedback
-              </Button>
-            </Link>
-          </div>
+    <div className="admin-dashboard-page">
+      <div className="admin-page-header">
+        <div>
+          <h1>System Overview & Health</h1>
+          <p>Global metrics, platform activity, and administrative management shortcuts.</p>
         </div>
-
-        {/* Metrics Overview Grid */}
-        <div className="admin-stats-grid">
-          <Card className="admin-stat-card">
-            <span className="stat-label">Total Users</span>
-            <h3 className="stat-val">{metrics.totalUsers}</h3>
-            <span className="stat-sub">
-              {metrics.activeUsers} active members
-            </span>
-          </Card>
-
-          <Card className="admin-stat-card">
-            <span className="stat-label">Problems in Catalog</span>
-            <h3 className="stat-val">{metrics.totalProblems}</h3>
-            <span className="stat-sub">
-              {metrics.publishedProblems} published
-            </span>
-          </Card>
-
-          <Card className="admin-stat-card">
-            <span className="stat-label">Total Submissions</span>
-            <h3 className="stat-val">{metrics.totalSubmissions}</h3>
-            <span className="stat-sub">
-              {metrics.acceptanceRate}% acceptance rate
-            </span>
-          </Card>
-
-          <Card className="admin-stat-card">
-            <span className="stat-label">Problem Feedback</span>
-            <h3 className="stat-val">{metrics.totalFeedback}</h3>
-            <span className="stat-sub">
-              {metrics.pendingReports} pending moderation
-            </span>
-          </Card>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <Link to="/admin/contests" className="button button-yellow">
+            <Plus size={15} /> Create Contest
+          </Link>
+          <Link to="/admin/problems" className="button button-dark">
+            <Plus size={15} /> Add Problem
+          </Link>
         </div>
-
-        {/* Recent Platform Submissions */}
-        <Card className="admin-section-card">
-          <h3 className="section-title">Recent Submissions Stream</h3>
-          <div className="admin-submissions-table">
-            <div className="table-head">
-              <span>User</span>
-              <span>Problem</span>
-              <span>Language</span>
-              <span>Status</span>
-              <span>Time</span>
-            </div>
-            {recentSubmissions?.map((sub) => (
-              <div key={sub._id} className="table-row">
-                <span className="user-name">
-                  {sub.userId?.displayName || sub.userId?.username || "NYC Dev"}
-                </span>
-                <span className="prob-title">
-                  {sub.problemId?.title || "Unknown Problem"}
-                </span>
-                <span className="lang-tag">{sub.language}</span>
-                <span className={`status-tag ${sub.status.toLowerCase()}`}>
-                  {sub.status}
-                </span>
-                <span className="time-text">
-                  {new Date(sub.createdAt).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
-              </div>
-            ))}
-          </div>
-        </Card>
       </div>
-    </PageLayout>
-  );
-};
 
-export default AdminDashboard;
+      {/* Metrics Row */}
+      <div className="admin-metrics-grid">
+        {metrics.map((m, i) => {
+          const Icon = m.icon;
+          return (
+            <div className="admin-metric-card" key={i}>
+              <div className={`am-icon ${m.colorClass}`}>
+                <Icon size={22} />
+              </div>
+              <div className="am-info">
+                <span>{m.label}</span>
+                <b>{m.val}</b>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Quick Links / Sections Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "24px" }}>
+        {/* Recent Submissions Feed */}
+        <div className="admin-table-card">
+          <div className="admin-table-card-head">
+            <h2>Real-Time Judge Stream</h2>
+            <Link to="/submissions" className="see-all-link">
+              View all →
+            </Link>
+          </div>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Problem</th>
+                <th>Language</th>
+                <th>Verdict</th>
+                <th>Runtime</th>
+              </tr>
+            </thead>
+            <tbody>
+              {submissions.slice(0, 5).map((sub) => (
+                <tr key={sub.id}>
+                  <td>
+                    <b>{sub.problemTitle}</b>
+                  </td>
+                  <td style={{ textTransform: "uppercase", fontSize: "11px" }}>
+                    {sub.language}
+                  </td>
+                  <td>
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        fontWeight: "900",
+                        color: sub.verdict === "ACCEPTED" ? "#16a34a" : "#dc2626"
+                      }}
+                    >
+                      {sub.verdictLabel}
+                    </span>
+                  </td>
+                  <td>{sub.runtime} ms</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Server & DB Cluster Status */}
+        <div className="admin-table-card">
+          <div className="admin-table-card-head">
+            <h2>Infrastructure Status</h2>
+            <span className="admin-status-pill">All Systems Operational</span>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px", fontSize: "13px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
+              <span>MongoDB Primary Cluster</span>
+              <b style={{ color: "#16a34a" }}>Healthy (3 Nodes)</b>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
+              <span>Redis Standings Cache</span>
+              <b style={{ color: "#16a34a" }}>Active (0.4ms latency)</b>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
+              <span>Judge0 / Sandbox Workers</span>
+              <b style={{ color: "#16a34a" }}>8 Containers Ready</b>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
+              <span>Active WebSocket Sockets</span>
+              <b>1,240 Connected</b>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

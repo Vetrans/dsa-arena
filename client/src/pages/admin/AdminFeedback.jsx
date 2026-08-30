@@ -1,118 +1,139 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { MessageSquare, CheckCircle, Clock, AlertTriangle, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
-import {
-  MessageSquare,
-  Star,
-  ArrowLeft,
-  CheckCircle2,
-  Clock,
-} from "lucide-react";
-import { toast } from "sonner";
-import { adminApi } from "../../api/arenaApi.js";
-import { Card, Button, Badge } from "../../components/ui/index.js";
-import PageLayout from "../../components/layout/PageLayout.jsx";
-import "./AdminDashboard.css";
 
-const AdminFeedback = () => {
-  const [feedbackList, setFeedbackList] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+const INITIAL_REPORTS = [
+  {
+    id: "rep_1",
+    problemSlug: "two-sum",
+    problemTitle: "Two Sum",
+    category: "WRONG_TESTCASE",
+    reporter: "subway_coder",
+    details: "Test case 3 expects 0-indexed result [0, 1] but explanation mentioned 1-based order in older prompt.",
+    status: "RESOLVED",
+    date: "2026-08-28"
+  },
+  {
+    id: "rep_2",
+    problemSlug: "word-ladder",
+    problemTitle: "Word Ladder",
+    category: "AMBIGUOUS_DESCRIPTION",
+    reporter: "queens_hacker",
+    details: "Please clarify if words in wordList are guaranteed to be lowercase in all languages.",
+    status: "IN_REVIEW",
+    date: "2026-08-30"
+  },
+  {
+    id: "rep_3",
+    problemSlug: "coin-change",
+    problemTitle: "Coin Change",
+    category: "RUNTIME_ISSUE",
+    reporter: "manhattan_dev",
+    details: "Large test case amount=6249 passes in JS in 28ms but might need larger time limit for Python recursion.",
+    status: "OPEN",
+    date: "2026-08-31"
+  }
+];
 
-  const fetchFeedback = async () => {
-    setIsLoading(true);
-    try {
-      const { data } = await adminApi.getFeedback({ limit: 50 });
-      setFeedbackList(data || []);
-    } catch (err) {
-      console.error("Failed to load feedback:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+export function AdminFeedback() {
+  const [reports, setReports] = useState(INITIAL_REPORTS);
 
-  useEffect(() => {
-    fetchFeedback();
-  }, []);
-
-  const handleStatusUpdate = async (id, status) => {
-    try {
-      await adminApi.updateFeedbackStatus(id, { status });
-      toast.success(`Feedback status updated to ${status}.`);
-      fetchFeedback();
-    } catch (err) {
-      toast.error("Failed to update status.");
-    }
+  const updateStatus = (id, newStatus) => {
+    setReports(
+      reports.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
+    );
   };
 
   return (
-    <PageLayout>
-      <div className="admin-container">
-        <div className="admin-header">
-          <div>
-            <Link to="/admin" className="back-link">
-              <ArrowLeft size={16} /> Back to Admin Overview
-            </Link>
-            <h1 className="admin-title">Problem Quality Feedback Queue</h1>
-            <p className="admin-subtitle">
-              Review student ratings, difficulty perception, and reported
-              problem issues.
-            </p>
-          </div>
-        </div>
-
-        <div className="admin-feedback-list">
-          {feedbackList.length === 0 ? (
-            <p className="empty-feedback-text">
-              No pending feedback in the moderation queue.
-            </p>
-          ) : (
-            feedbackList.map((fb) => (
-              <Card key={fb._id} className="admin-feedback-item">
-                <div className="fb-item-top">
-                  <div>
-                    <h4 className="fb-problem-title">
-                      Problem: {fb.problemId?.title || "Unknown Problem"}
-                    </h4>
-                    <span className="fb-author">
-                      Submitted by @{fb.userId?.username || "member"}
-                    </span>
-                  </div>
-
-                  <div className="fb-badges">
-                    <Badge variant="warning">{fb.difficultyPerception}</Badge>
-                    <span className="fb-stars">⭐ {fb.qualityRating} / 5</span>
-                  </div>
-                </div>
-
-                {fb.comment && (
-                  <p className="fb-comment-text">"{fb.comment}"</p>
-                )}
-
-                <div className="fb-item-bottom">
-                  <span
-                    className={`fb-status-pill ${fb.status?.toLowerCase() || "pending"}`}
-                  >
-                    Status: {fb.status || "PENDING"}
-                  </span>
-
-                  <div className="fb-actions">
-                    {fb.status !== "RESOLVED" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleStatusUpdate(fb._id, "RESOLVED")}
-                      >
-                        <CheckCircle2 size={14} /> Mark Resolved
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            ))
-          )}
+    <div className="admin-feedback-page">
+      <div className="admin-page-header">
+        <div>
+          <h1>Problem Bug Reports & Feedback</h1>
+          <p>Review issue reports submitted by arena users on specific problem test cases and descriptions.</p>
         </div>
       </div>
-    </PageLayout>
-  );
-};
 
-export default AdminFeedback;
+      <div className="admin-table-card">
+        <div className="admin-table-card-head">
+          <h2>Reported Issues ({reports.length})</h2>
+        </div>
+
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Problem</th>
+              <th>Category</th>
+              <th>Reporter</th>
+              <th>Issue Details</th>
+              <th>Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reports.map((rep) => (
+              <tr key={rep.id}>
+                <td>
+                  <span
+                    className={`diff-pill ${
+                      rep.status === "RESOLVED"
+                        ? "diff-easy"
+                        : rep.status === "IN_REVIEW"
+                        ? "diff-medium"
+                        : "diff-hard"
+                    }`}
+                  >
+                    {rep.status}
+                  </span>
+                </td>
+                <td>
+                  <Link
+                    to={`/problems/${rep.problemSlug}`}
+                    target="_blank"
+                    style={{ fontWeight: "800", color: "#1742e8" }}
+                  >
+                    {rep.problemTitle} ↗
+                  </Link>
+                </td>
+                <td>
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: "800",
+                      background: "#f1f5f9",
+                      padding: "2px 6px",
+                      borderRadius: "3px"
+                    }}
+                  >
+                    {rep.category}
+                  </span>
+                </td>
+                <td>@{rep.reporter}</td>
+                <td style={{ maxWidth: "340px", fontSize: "12px", lineHeight: "1.4" }}>
+                  {rep.details}
+                </td>
+                <td>{rep.date}</td>
+                <td>
+                  <select
+                    value={rep.status}
+                    onChange={(e) => updateStatus(rep.id, e.target.value)}
+                    style={{
+                      padding: "4px 8px",
+                      border: "1px solid var(--ink)",
+                      fontSize: "12px",
+                      fontWeight: "700"
+                    }}
+                  >
+                    <option value="OPEN">OPEN</option>
+                    <option value="IN_REVIEW">IN REVIEW</option>
+                    <option value="RESOLVED">RESOLVED</option>
+                  </select>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
