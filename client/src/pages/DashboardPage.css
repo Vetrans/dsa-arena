@@ -26,15 +26,17 @@
   gap: 18px;
 }
 
-.avatar-box {
-  width: 64px;
-  height: 64px;
+.avatar-box-pro {
+  width: 58px;
+  height: 58px;
   background: var(--nyc-yellow);
   border: 2px solid var(--ink);
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: 32px;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--ink);
   box-shadow: 2px 2px 0 var(--ink);
 }
 

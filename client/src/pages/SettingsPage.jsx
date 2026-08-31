@@ -12,13 +12,13 @@ import {
 import { useDemoAuth } from "../store/demoAuthStore.js";
 import "./SettingsPage.css";
 
-const AVATARS = ["🗽", "👨‍💻", "👩‍💻", "⚡", "👑", "🥋", "🛡️", "🔥"];
+const AVATARS = ["NYC", "DEV", "PRO", "ALGO", "SYS", "TITAN", "ACE", "CHAMP"];
 
 export function SettingsPage() {
   const { user } = useDemoAuth();
 
   const [activeTab, setActiveTab] = useState("profile"); // 'profile' | 'editor' | 'security'
-  const [avatar, setAvatar] = useState("🗽");
+  const [avatar, setAvatar] = useState("NYC");
   const [username, setUsername] = useState(user?.username || "arena_engineer");
   const [email, setEmail] = useState(user?.email || "engineer@nycdsa.com");
   const [bio, setBio] = useState(

@@ -21,10 +21,10 @@ import { useArenaStore } from "../store/arenaStore.js";
 import "./BattleArenaPage.css";
 
 const OPPONENTS = [
-  { name: "ManhattanCoder", rating: 1360, avatar: "🗽", rank: "Gold II" },
-  { name: "BrooklynAlgo", rating: 1315, avatar: "🌉", rank: "Gold I" },
-  { name: "QueensByte", rating: 1390, avatar: "👑", rank: "Gold III" },
-  { name: "SubwayHacker", rating: 1290, avatar: "🚇", rank: "Silver III" }
+  { name: "ManhattanCoder", rating: 1360, initials: "MC", rank: "Gold II" },
+  { name: "BrooklynAlgo", rating: 1315, initials: "BA", rank: "Gold I" },
+  { name: "QueensByte", rating: 1390, initials: "QB", rank: "Gold III" },
+  { name: "SubwayHacker", rating: 1290, initials: "SH", rank: "Silver III" }
 ];
 
 export function BattleArenaPage() {
@@ -58,7 +58,7 @@ export function BattleArenaPage() {
 
       setOpponent(selectedOpponent);
       setMatchProblem(chosenProblem);
-      setCode(chosenProblem.starterCode.javascript);
+      setCode(chosenProblem?.starterCode?.javascript || "function solution() {\n  // Code here\n}");
       setTimeLeft(900);
       setOpponentPassCount(0);
       setOpponentStatus("Reading problem statement...");
@@ -208,15 +208,21 @@ export function BattleArenaPage() {
 
           <div className="duel-rules-grid">
             <div className="rule-card">
-              <b>⚡ Speed Duel</b>
+              <b style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                <Zap size={15} /> Speed Duel
+              </b>
               <p>15-minute timer. Write and submit your working solution before your rival.</p>
             </div>
             <div className="rule-card">
-              <b>🛡️ Competitive ELO</b>
+              <b style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                <Shield size={15} /> Competitive ELO
+              </b>
               <p>Win matches to gain +32 Rating. Defeat subtracts -18 Rating.</p>
             </div>
             <div className="rule-card">
-              <b>⚔️ Live Progress</b>
+              <b style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                <Swords size={15} /> Live Progress
+              </b>
               <p>Watch your opponent's testcase pass progression live as they write code.</p>
             </div>
           </div>
@@ -238,7 +244,9 @@ export function BattleArenaPage() {
           {/* Battle Header Bar */}
           <div className="battle-statusbar">
             <div className="player-stat user-side">
-              <div className="player-avatar">👨‍💻</div>
+              <div className="player-avatar">
+                <span>YOU</span>
+              </div>
               <div>
                 <b className="p-title">YOU</b>
                 <span className="p-sub">{userRating} PTS</span>
@@ -255,7 +263,9 @@ export function BattleArenaPage() {
                 <b className="p-title">{opponent?.name}</b>
                 <span className="p-sub">{opponent?.rating} PTS</span>
               </div>
-              <div className="player-avatar">{opponent?.avatar}</div>
+              <div className="player-avatar">
+                <span>{opponent?.initials || "OP"}</span>
+              </div>
             </div>
           </div>
 

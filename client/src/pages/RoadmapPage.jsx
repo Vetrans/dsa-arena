@@ -6,11 +6,35 @@ import {
   ArrowRight,
   Sparkles,
   BookOpen,
-  Milestone
+  Milestone,
+  Layers,
+  Maximize2,
+  FolderTree,
+  GitBranch,
+  Cpu,
+  Target,
+  RefreshCw,
+  Share2,
+  Zap,
+  Trophy
 } from "lucide-react";
 import { PROBLEMS } from "../data/problemsData.js";
 import { useArenaStore } from "../store/arenaStore.js";
 import "./RoadmapPage.css";
+
+const TOPIC_ICONS = {
+  arrays: Layers,
+  "two-pointers": ArrowRight,
+  "sliding-window": Maximize2,
+  stack: FolderTree,
+  "linked-lists": GitBranch,
+  trees: Cpu,
+  heaps: Target,
+  recursion: RefreshCw,
+  graphs: Share2,
+  "dynamic-programming": Zap,
+  greedy: Trophy
+};
 
 const ROADMAP_STAGES = [
   {
@@ -21,25 +45,21 @@ const ROADMAP_STAGES = [
       {
         slug: "arrays",
         title: "Arrays & Hashing",
-        icon: "📊",
         summary: "O(1) lookups, hash maps, frequency tables, prefix sums."
       },
       {
         slug: "two-pointers",
         title: "Two Pointers",
-        icon: "👉",
         summary: "Dual index traversal for sorted sequences and partition logic."
       },
       {
         slug: "sliding-window",
         title: "Sliding Window",
-        icon: "🪟",
         summary: "Subsegment tracking in linear O(N) time."
       },
       {
         slug: "stack",
         title: "Stack & Monotonic Scans",
-        icon: "🥞",
         summary: "LIFO matching, parentheses, next greater element."
       }
     ]
@@ -52,19 +72,16 @@ const ROADMAP_STAGES = [
       {
         slug: "linked-lists",
         title: "Linked Lists",
-        icon: "🔗",
         summary: "Node pointers, reversal, fast & slow pointers, cycle detection."
       },
       {
         slug: "trees",
         title: "Binary Trees & BST",
-        icon: "🌳",
         summary: "Tree traversal (Inorder, Preorder, Postorder, Level-order), BST properties."
       },
       {
         slug: "heaps",
         title: "Heaps & Priority Queues",
-        icon: "⛰️",
         summary: "Top-K elements, streaming medians, min/max heap invariants."
       }
     ]
@@ -77,13 +94,11 @@ const ROADMAP_STAGES = [
       {
         slug: "recursion",
         title: "Recursion & Backtracking",
-        icon: "🔄",
         summary: "Combinations, permutations, subset state exploration."
       },
       {
         slug: "graphs",
         title: "Graphs & Shortest Paths",
-        icon: "🕸️",
         summary: "BFS, DFS, cycle detection, topological sort, Dijkstra."
       }
     ]
@@ -96,13 +111,11 @@ const ROADMAP_STAGES = [
       {
         slug: "dynamic-programming",
         title: "Dynamic Programming",
-        icon: "⚡",
         summary: "1D/2D DP, knapsack variations, longest common subsequence, intervals."
       },
       {
         slug: "greedy",
         title: "Greedy & Intervals",
-        icon: "🎯",
         summary: "Locally optimal choices yielding global optima, interval scheduling."
       }
     ]
@@ -112,21 +125,48 @@ const ROADMAP_STAGES = [
 export function RoadmapPage() {
   const { solvedProblemSlugs } = useArenaStore();
 
+  const totalCurated = PROBLEMS.length;
+  const totalSolved = solvedProblemSlugs.length;
+  const overallPercent = Math.min(
+    100,
+    Math.round((totalSolved / (totalCurated || 1)) * 100)
+  );
+
   return (
     <div className="roadmap-page">
+      {/* Header Banner */}
       <div className="roadmap-header">
-        <p className="eyebrow">CURATED MASTER CURRICULUM</p>
-        <h1>ALGORITHMIC LEARNING ROADMAP</h1>
-        <p className="roadmap-sub">
-          A battle-tested progression through all 18 core DSA topics. Master each
-          stage to conquer interview coding loops and competitive arena contests.
-        </p>
+        <div className="rh-copy">
+          <p className="eyebrow">CURATED MASTERY PATH</p>
+          <h1>DATA STRUCTURES & ALGORITHMS ROADMAP</h1>
+          <p>
+            Master 18 foundational topics across 4 progressive stages to crack
+            tier-1 technical interviews and conquer competitive arenas.
+          </p>
+        </div>
+
+        <div className="rh-stats-card">
+          <div className="rhs-top">
+            <span>OVERALL CURRICULUM PROGRESS</span>
+            <b>{overallPercent}%</b>
+          </div>
+          <div className="rhs-track">
+            <div
+              className="rhs-fill"
+              style={{ width: `${overallPercent}%` }}
+            />
+          </div>
+          <span className="rhs-sub">
+            {totalSolved} of {totalCurated} Core Challenges Conquered
+          </span>
+        </div>
       </div>
 
+      {/* Progressive Stages Timeline */}
       <div className="stages-container">
         {ROADMAP_STAGES.map((stage) => (
           <section className="stage-section" key={stage.stageNumber}>
-            <div className="stage-heading">
+            <div className="stage-header">
               <div className="stage-badge">STAGE 0{stage.stageNumber}</div>
               <div>
                 <h2>{stage.title}</h2>
@@ -136,7 +176,7 @@ export function RoadmapPage() {
 
             <div className="topic-cards-grid">
               {stage.topics.map((topic) => {
-                // Find problems matching this topic
+                const IconComponent = TOPIC_ICONS[topic.slug] || Layers;
                 const topicProblems = PROBLEMS.filter((p) =>
                   p.topicSlugs.includes(topic.slug)
                 );
@@ -155,7 +195,9 @@ export function RoadmapPage() {
                     key={topic.slug}
                   >
                     <div className="rtc-top">
-                      <span className="rtc-icon">{topic.icon}</span>
+                      <span className="rtc-icon">
+                        <IconComponent size={20} />
+                      </span>
                       {isComplete ? (
                         <span className="badge-done">
                           <CheckCircle2 size={13} /> Completed
@@ -188,8 +230,8 @@ export function RoadmapPage() {
                         ))}
                       </div>
                     ) : (
-                      <div className="rtc-coming-soon">
-                        <span>Problems Bank Updated Weekly</span>
+                      <div className="rtc-no-prob">
+                        <span>Curated set coming in Next Sprint</span>
                       </div>
                     )}
                   </div>

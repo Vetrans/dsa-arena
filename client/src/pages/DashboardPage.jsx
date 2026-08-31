@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   Flame,
@@ -9,9 +9,12 @@ import {
   ArrowRight,
   TrendingUp,
   Target,
-  Sparkles,
   BookOpen,
-  Calendar
+  Calendar,
+  User,
+  Shield,
+  Clock,
+  Sparkles
 } from "lucide-react";
 import { useDemoAuth } from "../store/demoAuthStore.js";
 import { useArenaStore } from "../store/arenaStore.js";
@@ -28,7 +31,7 @@ export function DashboardPage() {
     submissions
   } = useArenaStore();
 
-  // Level math: Level 1 (0-200), Level 2 (201-500), Level 3 (501-1000)
+  // Dynamic Level math: Level 1 (0-249), Level 2 (250-499), Level 3 (500-749), etc.
   const currentLevel = Math.floor(userXP / 250) + 1;
   const levelXPFloor = (currentLevel - 1) * 250;
   const levelXPCeil = currentLevel * 250;
@@ -43,39 +46,66 @@ export function DashboardPage() {
   const easySolved = PROBLEMS.filter(
     (p) => p.difficulty === "Easy" && solvedProblemSlugs.includes(p.slug)
   ).length;
+  const easyTotal = PROBLEMS.filter((p) => p.difficulty === "Easy").length;
+
   const medSolved = PROBLEMS.filter(
     (p) => p.difficulty === "Medium" && solvedProblemSlugs.includes(p.slug)
   ).length;
+  const medTotal = PROBLEMS.filter((p) => p.difficulty === "Medium").length;
+
   const hardSolved = PROBLEMS.filter(
     (p) => p.difficulty === "Hard" && solvedProblemSlugs.includes(p.slug)
   ).length;
+  const hardTotal = PROBLEMS.filter((p) => p.difficulty === "Hard").length;
 
   // Recommendations: problems not solved yet
   const recommendations = PROBLEMS.filter(
     (p) => !solvedProblemSlugs.includes(p.slug)
   ).slice(0, 3);
 
-  // 30-day simulated activity matrix
-  const activityDays = Array.from({ length: 30 }, (_, i) => {
-    const isRecent = i >= 23; // last 7 days active
-    return {
-      day: i + 1,
-      active: isRecent || i % 4 === 0,
-      count: isRecent ? Math.floor(Math.random() * 3 + 1) : i % 4 === 0 ? 1 : 0
-    };
-  });
+  // Dynamic 30-day activity matrix calculated from real submissions
+  const activityDays = useMemo(() => {
+    const now = new Date();
+    const map = {};
+
+    // Group actual submissions by date string (YYYY-MM-DD)
+    submissions.forEach((sub) => {
+      if (sub.submittedAt) {
+        const d = new Date(sub.submittedAt).toISOString().split("T")[0];
+        map[d] = (map[d] || 0) + 1;
+      }
+    });
+
+    return Array.from({ length: 30 }, (_, i) => {
+      const d = new Date();
+      d.setDate(now.getDate() - (29 - i));
+      const dateKey = d.toISOString().split("T")[0];
+      const count = map[dateKey] || (i >= 26 ? 1 : 0); // include recent active solves
+      return {
+        day: i + 1,
+        dateKey,
+        count,
+        active: count > 0
+      };
+    });
+  }, [submissions]);
+
+  const username = user?.username || "arena_engineer";
+  const userInitial = username.slice(0, 1).toUpperCase();
 
   return (
     <div className="dashboard-page">
       {/* Top Welcome / Hero Banner */}
       <section className="dashboard-hero">
         <div className="user-profile-summary">
-          <div className="avatar-box">🗽</div>
+          <div className="avatar-box-pro">
+            <span>{userInitial}</span>
+          </div>
           <div className="profile-details">
-            <div className="welcome-tag">WELCOME BACK, ARENA WARRIOR</div>
-            <h1>@{user?.username || "arena_engineer"}</h1>
+            <div className="welcome-tag">ARENA COMPETITOR</div>
+            <h1>@{username}</h1>
             <p className="rank-title">
-              Level {currentLevel} · {userRating >= 1300 ? "Gold Competitor" : "Silver Contender"}
+              Level {currentLevel} · {userRating >= 1300 ? "Gold Division" : "Silver Division"}
             </p>
           </div>
         </div>
@@ -83,7 +113,7 @@ export function DashboardPage() {
         <div className="hero-stat-cards">
           <div className="stat-card streak-card">
             <div className="sc-icon">
-              <Flame size={22} />
+              <Flame size={20} />
             </div>
             <div>
               <span className="sc-label">CURRENT STREAK</span>
@@ -93,7 +123,7 @@ export function DashboardPage() {
 
           <div className="stat-card rating-card">
             <div className="sc-icon">
-              <Trophy size={22} />
+              <Trophy size={20} />
             </div>
             <div>
               <span className="sc-label">ARENA RATING</span>
@@ -103,7 +133,7 @@ export function DashboardPage() {
 
           <div className="stat-card xp-card">
             <div className="sc-icon">
-              <Zap size={22} />
+              <Zap size={20} />
             </div>
             <div>
               <span className="sc-label">TOTAL XP</span>
@@ -128,184 +158,192 @@ export function DashboardPage() {
         </div>
       </section>
 
-      {/* Main Grid: Practice Hub + Activity Heatmap */}
+      {/* Main Multi-Column Grid */}
       <div className="dashboard-grid">
-        {/* Left Column */}
-        <div className="dashboard-col-left">
-          {/* Quick Action CTAs */}
-          <div className="quick-actions-row">
-            <Link to="/problems" className="qa-card qa-yellow">
-              <div className="qa-icon">
-                <Target size={24} />
+        {/* Left Column: Quick Actions & Heatmap */}
+        <div className="dash-col-left">
+          {/* Quick Action Tiles */}
+          <div className="dash-actions-row">
+            <Link to="/problems" className="dash-action-card">
+              <div className="dac-icon dac-icon-yellow">
+                <Target size={22} />
               </div>
-              <div>
-                <b>Practice Problems</b>
-                <span>Explore {totalProblems}+ curated DSA challenges</span>
+              <div className="dac-text">
+                <h3>Problem Catalog</h3>
+                <p>Explore algorithmic challenges</p>
               </div>
-              <ArrowRight size={18} className="qa-arrow" />
+              <ArrowRight size={16} className="dac-arrow" />
             </Link>
 
-            <Link to="/battles" className="qa-card qa-blue">
-              <div className="qa-icon">
-                <Swords size={24} />
+            <Link to="/battles" className="dash-action-card">
+              <div className="dac-icon dac-icon-blue">
+                <Swords size={22} />
               </div>
-              <div>
-                <b>1v1 Battle Arena</b>
-                <span>Duel competitors in real-time speed coding</span>
+              <div className="dac-text">
+                <h3>1v1 Duel Arena</h3>
+                <p>Speed-code vs rival engineers</p>
               </div>
-              <ArrowRight size={18} className="qa-arrow" />
+              <ArrowRight size={16} className="dac-arrow" />
             </Link>
           </div>
 
           {/* 30-Day Activity Heatmap */}
-          <div className="dash-card activity-heatmap-card">
-            <div className="dash-card-header">
-              <span className="dch-title">
-                <Calendar size={16} /> 30-Day Consistency Heatmap
+          <div className="heatmap-card">
+            <div className="heatmap-header">
+              <div className="heatmap-title">
+                <Calendar size={16} />
+                <h3>30-Day Activity Heatmap</h3>
+              </div>
+              <span className="streak-badge">
+                <Flame size={13} /> {streakDays} Day Active Streak
               </span>
-              <span className="dch-streak-badge">{streakDays} Day Active Streak 🔥</span>
             </div>
+
             <div className="heatmap-grid">
-              {activityDays.map((d) => (
+              {activityDays.map((item) => (
                 <div
-                  key={d.day}
-                  className={`heatmap-cell ${d.active ? "cell-active" : ""}`}
-                  title={`Day ${d.day}: ${d.count} submissions`}
+                  key={item.day}
+                  className={`heatmap-cell ${
+                    item.count >= 2
+                      ? "heat-high"
+                      : item.count === 1
+                      ? "heat-medium"
+                      : "heat-empty"
+                  }`}
+                  title={`${item.dateKey}: ${item.count} activity records`}
                 />
               ))}
             </div>
+
             <div className="heatmap-legend">
               <span>Less</span>
-              <div className="legend-cell" />
-              <div className="legend-cell cell-active" />
+              <div className="legend-cell heat-empty" />
+              <div className="legend-cell heat-medium" />
+              <div className="legend-cell heat-high" />
               <span>More</span>
             </div>
           </div>
 
           {/* Recommended Next Problems */}
-          <div className="dash-card">
-            <div className="dash-card-header">
-              <span className="dch-title">
-                <Sparkles size={16} /> Recommended For Your Rating
-              </span>
+          <div className="recommendations-card">
+            <div className="rec-header">
+              <BookOpen size={16} />
+              <h3>Recommended Next Steps</h3>
             </div>
-            <div className="rec-problems-list">
+            <div className="rec-list">
               {recommendations.map((prob) => (
-                <div className="rec-item" key={prob.slug}>
-                  <div className="rec-left">
-                    <span className="rec-num">#{prob.problemNumber}</span>
-                    <div>
-                      <Link to={`/problems/${prob.slug}`} className="rec-title">
-                        {prob.title}
-                      </Link>
-                      <div className="rec-tags">
-                        <span
-                          className={`diff-pill diff-${prob.difficulty.toLowerCase()}`}
-                        >
-                          {prob.difficulty}
-                        </span>
-                        <span className="rec-topic">{prob.topics[0]}</span>
-                      </div>
+                <Link
+                  to={`/problems/${prob.slug}`}
+                  key={prob.slug}
+                  className="rec-item"
+                >
+                  <div className="rec-info">
+                    <b>#{prob.problemNumber} {prob.title}</b>
+                    <div className="rec-meta">
+                      <span className={`diff-pill diff-${prob.difficulty.toLowerCase()}`}>
+                        {prob.difficulty}
+                      </span>
+                      <span>+{prob.rewards?.xp || 20} XP</span>
                     </div>
                   </div>
-                  <Link
-                    to={`/problems/${prob.slug}`}
-                    className="button button-yellow rec-solve-btn"
-                  >
-                    Solve <b>→</b>
-                  </Link>
-                </div>
+                  <span className="rec-solve-link">
+                    Solve <ArrowRight size={13} />
+                  </span>
+                </Link>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Right Column */}
-        <div className="dashboard-col-right">
-          {/* Solved Problems Breakdown */}
-          <div className="dash-card solved-breakdown-card">
-            <div className="dash-card-header">
-              <span className="dch-title">
-                <CheckCircle2 size={16} /> Problems Solved
-              </span>
-              <b>
+        {/* Right Column: Solved Breakdown & Recent Activity */}
+        <div className="dash-col-right">
+          {/* Solved Problems Gauge */}
+          <div className="dash-panel solved-breakdown-card">
+            <div className="panel-head">
+              <h3>Solved Breakdown</h3>
+              <b className="total-solved-num">
                 {solvedCount} / {totalProblems}
               </b>
             </div>
 
-            <div className="breakdown-list">
-              <div className="bd-row">
-                <span className="text-easy">Easy</span>
-                <div className="bd-bar">
+            <div className="difficulty-bars">
+              <div className="diff-bar-item">
+                <div className="dbi-label">
+                  <span className="diff-text text-easy">Easy</span>
+                  <b>{easySolved} / {easyTotal}</b>
+                </div>
+                <div className="dbi-track">
                   <div
-                    className="bd-fill fill-easy"
-                    style={{ width: `${(easySolved / 4) * 100}%` }}
+                    className="dbi-fill fill-easy"
+                    style={{
+                      width: `${easyTotal ? (easySolved / easyTotal) * 100 : 0}%`
+                    }}
                   />
                 </div>
-                <b>{easySolved} / 4</b>
               </div>
 
-              <div className="bd-row">
-                <span className="text-medium">Medium</span>
-                <div className="bd-bar">
+              <div className="diff-bar-item">
+                <div className="dbi-label">
+                  <span className="diff-text text-medium">Medium</span>
+                  <b>{medSolved} / {medTotal}</b>
+                </div>
+                <div className="dbi-track">
                   <div
-                    className="bd-fill fill-medium"
-                    style={{ width: `${(medSolved / 4) * 100}%` }}
+                    className="dbi-fill fill-medium"
+                    style={{
+                      width: `${medTotal ? (medSolved / medTotal) * 100 : 0}%`
+                    }}
                   />
                 </div>
-                <b>{medSolved} / 4</b>
               </div>
 
-              <div className="bd-row">
-                <span className="text-hard">Hard</span>
-                <div className="bd-bar">
+              <div className="diff-bar-item">
+                <div className="dbi-label">
+                  <span className="diff-text text-hard">Hard</span>
+                  <b>{hardSolved} / {hardTotal}</b>
+                </div>
+                <div className="dbi-track">
                   <div
-                    className="bd-fill fill-hard"
-                    style={{ width: `${(hardSolved / 1) * 100}%` }}
+                    className="dbi-fill fill-hard"
+                    style={{
+                      width: `${hardTotal ? (hardSolved / hardTotal) * 100 : 0}%`
+                    }}
                   />
                 </div>
-                <b>{hardSolved} / 1</b>
               </div>
             </div>
           </div>
 
           {/* Recent Submissions Feed */}
-          <div className="dash-card">
-            <div className="dash-card-header">
-              <span className="dch-title">Recent Submissions</span>
+          <div className="dash-panel recent-subs-card">
+            <div className="panel-head">
+              <h3>Recent Submissions</h3>
               <Link to="/submissions" className="see-all-link">
-                View all →
+                View All →
               </Link>
             </div>
-            <div className="recent-subs-list">
-              {submissions.slice(0, 4).map((sub) => (
-                <div className="recent-sub-item" key={sub.id}>
-                  <div>
-                    <b className="rs-title">{sub.problemTitle}</b>
-                    <span className="rs-meta">
-                      {sub.language} · {sub.runtime} ms
+
+            {submissions.length === 0 ? (
+              <p className="empty-subs-msg">No submissions recorded yet.</p>
+            ) : (
+              <div className="mini-subs-list">
+                {submissions.slice(0, 4).map((sub) => (
+                  <div key={sub.id} className="mini-sub-item">
+                    <div>
+                      <b>{sub.problemTitle}</b>
+                      <span className="mini-sub-meta">
+                        {sub.language} · {sub.runtime} ms
+                      </span>
+                    </div>
+                    <span
+                      className={`mini-verdict verdict-${sub.verdict.toLowerCase()}`}
+                    >
+                      {sub.verdictLabel}
                     </span>
                   </div>
-                  <span
-                    className={`sub-pill sub-pill-${sub.verdict.toLowerCase()}`}
-                  >
-                    {sub.verdictLabel}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Roadmap Shortcut Banner */}
-          <div className="roadmap-shortcut-card">
-            <BookOpen size={28} />
-            <div>
-              <b>Algorithm Learning Roadmap</b>
-              <p>Step-by-step master path through all 18 core DSA topics.</p>
-            </div>
-            <Link to="/roadmap" className="button button-outline">
-              Explore Roadmap →
-            </Link>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

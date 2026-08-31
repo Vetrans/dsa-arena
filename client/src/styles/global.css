@@ -211,25 +211,6 @@ input {
   background: #1742e8;
   color: #fff;
 }
-.stat-strip {
-  background: var(--ink);
-  color: #fff;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  padding: 24px clamp(24px, 8vw, 130px);
-  gap: 20px;
-}
-.stat-strip div {
-  display: flex;
-  flex-direction: column;
-}
-.stat-strip b {
-  font-size: 20px;
-}
-.stat-strip span {
-  font-size: 12px;
-  color: #c7c7c7;
-}
 .screen-page {
   max-width: 1100px;
   margin: 0 auto;

@@ -7,7 +7,11 @@ import {
   Lock,
   Sparkles,
   Award,
-  Crown
+  Crown,
+  Shield,
+  Target,
+  Medal,
+  Activity
 } from "lucide-react";
 import { useArenaStore } from "../store/arenaStore.js";
 import "./AchievementsPage.css";
@@ -18,7 +22,7 @@ const ALL_ACHIEVEMENTS = [
     category: "First Steps",
     name: "First Blood Solve",
     description: "Solve your very first DSA problem in the NYC Arena.",
-    icon: "⚔️",
+    icon: Award,
     xp: 25,
     rarity: "Common",
     target: 1,
@@ -29,7 +33,7 @@ const ALL_ACHIEVEMENTS = [
     category: "First Steps",
     name: "Stepping Up",
     description: "Conquer your first Medium difficulty algorithmic challenge.",
-    icon: "⚡",
+    icon: Zap,
     xp: 50,
     rarity: "Uncommon",
     target: 1,
@@ -40,7 +44,7 @@ const ALL_ACHIEVEMENTS = [
     category: "First Steps",
     name: "NYC Titan",
     description: "Conquer a Hard difficulty problem in the Arena.",
-    icon: "🛡️",
+    icon: Shield,
     xp: 100,
     rarity: "Rare",
     target: 1,
@@ -51,7 +55,7 @@ const ALL_ACHIEVEMENTS = [
     category: "Consistency",
     name: "Subway Regular",
     description: "Maintain a 3-day problem solving streak.",
-    icon: "🚇",
+    icon: Flame,
     xp: 30,
     rarity: "Common",
     target: 3,
@@ -62,7 +66,7 @@ const ALL_ACHIEVEMENTS = [
     category: "Consistency",
     name: "Empire State Habit",
     description: "Maintain a 7-day problem solving streak.",
-    icon: "🔥",
+    icon: Flame,
     xp: 100,
     rarity: "Uncommon",
     target: 7,
@@ -72,8 +76,8 @@ const ALL_ACHIEVEMENTS = [
     key: "STREAK_30",
     category: "Consistency",
     name: "Wall Street Grind",
-    description: "Maintain a 30-day continuous solving streak.",
-    icon: "💎",
+    description: "Maintain a 30-day continuous problem solving streak.",
+    icon: Activity,
     xp: 500,
     rarity: "Epic",
     target: 30,
@@ -84,21 +88,43 @@ const ALL_ACHIEVEMENTS = [
     category: "Milestones",
     name: "Problem Initiate",
     description: "Solve 10 DSA problems in the Arena.",
-    icon: "🎯",
+    icon: Target,
     xp: 75,
     rarity: "Common",
     target: 10,
     currentType: "solved"
   },
   {
-    key: "RATING_1300",
+    key: "SOLVE_25",
+    category: "Milestones",
+    name: "Algorithm Adept",
+    description: "Solve 25 DSA problems in the Arena.",
+    icon: Medal,
+    xp: 150,
+    rarity: "Uncommon",
+    target: 25,
+    currentType: "solved"
+  },
+  {
+    key: "RATING_1500",
     category: "Competitive",
     name: "Gold Contender",
-    description: "Reach a competitive rating of 1,300+ in Arena duels.",
-    icon: "🥇",
+    description: "Reach a competitive rating of 1,300+ in the Arena.",
+    icon: Trophy,
     xp: 150,
     rarity: "Uncommon",
     target: 1300,
+    currentType: "rating"
+  },
+  {
+    key: "RATING_2000",
+    category: "Competitive",
+    name: "Diamond Mastermind",
+    description: "Reach a competitive rating of 2,000+ (Master tier).",
+    icon: Crown,
+    xp: 500,
+    rarity: "Epic",
+    target: 2000,
     currentType: "rating"
   }
 ];
@@ -113,10 +139,12 @@ export function AchievementsPage() {
     claimAchievement
   } = useArenaStore();
 
-  const getProgress = (ach) => {
-    if (ach.currentType === "solved") return solvedProblemSlugs.length;
-    if (ach.currentType === "streak") return streakDays;
-    if (ach.currentType === "rating") return userRating;
+  const getProgressVal = (type) => {
+    if (type === "solved") return solvedProblemSlugs.length;
+    if (type === "medium_solved") return solvedProblemSlugs.length > 0 ? 1 : 0;
+    if (type === "hard_solved") return 0;
+    if (type === "streak") return streakDays;
+    if (type === "rating") return userRating;
     return 0;
   };
 
@@ -125,80 +153,86 @@ export function AchievementsPage() {
   return (
     <div className="achievements-page">
       <div className="achievements-header">
-        <p className="eyebrow">ARENA REWARDS & TROPHIES</p>
-        <h1>ACHIEVEMENTS SHOWCASE</h1>
-        <p>Unlock badges, conquer milestones, and claim bonus XP as you advance.</p>
+        <p className="eyebrow">ARENA REWARDS & MILESTONES</p>
+        <h1>ACHIEVEMENTS & TROPHIES</h1>
+        <p>Unlock trophies, level up your ranking, and claim bonus XP for your milestones.</p>
       </div>
 
       <div className="achievements-categories">
-        {categories.map((cat) => (
-          <section className="ach-category-section" key={cat}>
-            <h2 className="cat-title">{cat}</h2>
-            <div className="ach-cards-grid">
-              {ALL_ACHIEVEMENTS.filter((a) => a.category === cat).map((ach) => {
-                const currentVal = getProgress(ach);
-                const isCompleted = currentVal >= ach.target;
-                const isClaimed = claimedAchievements.includes(ach.key);
-                const progressPct = Math.min(
-                  100,
-                  Math.round((currentVal / ach.target) * 100)
-                );
+        {categories.map((cat) => {
+          const catList = ALL_ACHIEVEMENTS.filter((a) => a.category === cat);
+          return (
+            <section className="ach-category-section" key={cat}>
+              <h2>{cat}</h2>
+              <div className="ach-grid">
+                {catList.map((ach) => {
+                  const current = getProgressVal(ach.currentType);
+                  const isUnlocked = current >= ach.target;
+                  const isClaimed = claimedAchievements.includes(ach.key);
+                  const percent = Math.min(100, Math.round((current / ach.target) * 100));
+                  const IconComp = ach.icon;
 
-                return (
-                  <div
-                    className={`ach-card ${
-                      isCompleted ? "ach-completed" : "ach-locked"
-                    }`}
-                    key={ach.key}
-                  >
-                    <div className="ach-top">
-                      <span className="ach-icon">{ach.icon}</span>
-                      <span className={`rarity-tag rarity-${ach.rarity.toLowerCase()}`}>
-                        {ach.rarity}
-                      </span>
-                    </div>
-
-                    <h3>{ach.name}</h3>
-                    <p className="ach-desc">{ach.description}</p>
-
-                    <div className="ach-progress-bar">
-                      <div
-                        className="ach-fill"
-                        style={{ width: `${progressPct}%` }}
-                      />
-                    </div>
-                    <div className="ach-progress-text">
-                      <span>Progress</span>
-                      <b>
-                        {currentVal} / {ach.target}
-                      </b>
-                    </div>
-
-                    <div className="ach-bottom">
-                      <span className="ach-reward">+{ach.xp} XP</span>
-                      {isClaimed ? (
-                        <span className="claimed-badge">
-                          <CheckCircle2 size={13} /> Claimed
+                  return (
+                    <div
+                      key={ach.key}
+                      className={`ach-card ${isUnlocked ? "ach-unlocked" : "ach-locked"} ${
+                        isClaimed ? "ach-claimed" : ""
+                      }`}
+                    >
+                      <div className="ach-card-top">
+                        <div className="ach-icon-box">
+                          <IconComp size={24} />
+                        </div>
+                        <span className={`rarity-badge rarity-${ach.rarity.toLowerCase()}`}>
+                          {ach.rarity}
                         </span>
-                      ) : isCompleted ? (
-                        <button
-                          className="claim-btn"
-                          onClick={() => claimAchievement(ach.key, ach.xp)}
-                        >
-                          <Zap size={13} /> Claim Reward
-                        </button>
-                      ) : (
-                        <span className="locked-badge">
-                          <Lock size={12} /> Locked
-                        </span>
-                      )}
+                      </div>
+
+                      <div className="ach-card-body">
+                        <h3>{ach.name}</h3>
+                        <p>{ach.description}</p>
+                      </div>
+
+                      <div className="ach-card-footer">
+                        <div className="ach-progress-bar">
+                          <div
+                            className="ach-fill"
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                        <div className="ach-meta">
+                          <span className="ach-current-target">
+                            {Math.min(current, ach.target)} / {ach.target}
+                          </span>
+                          <span className="ach-reward-xp">+{ach.xp} XP</span>
+                        </div>
+
+                        {isUnlocked && !isClaimed && (
+                          <button
+                            className="claim-xp-btn"
+                            onClick={() => claimAchievement(ach.key, ach.xp)}
+                          >
+                            <Sparkles size={13} /> Claim +{ach.xp} XP
+                          </button>
+                        )}
+                        {isClaimed && (
+                          <div className="claimed-badge">
+                            <CheckCircle2 size={13} /> Claimed
+                          </div>
+                        )}
+                        {!isUnlocked && (
+                          <div className="locked-badge">
+                            <Lock size={12} /> Locked
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        ))}
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
       </div>
     </div>
   );

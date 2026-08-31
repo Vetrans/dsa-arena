@@ -63,7 +63,9 @@ export function ProfilePage() {
       {/* Profile Header */}
       <section className="profile-hero">
         <div className="ph-left">
-          <div className="ph-avatar">🗽</div>
+          <div className="ph-avatar">
+            <span>{displayUser.slice(0, 1).toUpperCase()}</span>
+          </div>
           <div className="ph-info">
             <span className="ph-eyebrow">NYC DSA ARENA PROFILE</span>
             <h1>@{displayUser}</h1>

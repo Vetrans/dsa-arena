@@ -1,9 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Pagination } from "../components/app/Pagination.jsx";
 import { PublicFrame } from "../components/app/PublicHeader.jsx";
 import { useReveal } from "../hooks/useReveal.js";
-const players = [
+import { useDemoAuth } from "../store/demoAuthStore.js";
+import { useArenaStore } from "../store/arenaStore.js";
+import { Trophy, TrendingUp, Zap, CheckCircle2 } from "lucide-react";
+
+const BASE_PLAYERS = [
   { name: "Aarav Shah", rating: 2113, xp: 2850, solved: 178, change: 38 },
   { name: "Meera Iyer", rating: 2058, xp: 3180, solved: 191, change: 26 },
   { name: "Rohan Kapoor", rating: 1994, xp: 2660, solved: 169, change: 18 },
@@ -17,10 +21,11 @@ const players = [
   { name: "Vihaan Das", rating: 1548, xp: 2380, solved: 158, change: 15 },
   { name: "Tanya Bose", rating: 1491, xp: 3090, solved: 188, change: 25 },
 ];
+
 const tabs = [
   {
     id: "rating",
-    label: "Global rating",
+    label: "Global Rating",
     field: "rating",
     unit: "Rating",
     delta: "Change",
@@ -29,41 +34,75 @@ const tabs = [
     id: "xp",
     label: "Weekly XP",
     field: "xp",
-    unit: "XP earned",
-    delta: "This week",
+    unit: "XP Earned",
+    delta: "This Week",
   },
   {
     id: "solved",
-    label: "Problems solved",
+    label: "Problems Solved",
     field: "solved",
     unit: "Solved",
     delta: "Streak",
   },
 ];
+
 export function LeaderboardPage() {
   const [tab, setTab] = useState(tabs[0]);
   const [page, setPage] = useState(1);
   const root = useReveal();
+
+  const { user } = useDemoAuth();
+  const { userRating, userXP, solvedProblemSlugs, streakDays } = useArenaStore();
+
+  // Combine live user with base leaderboard dynamically
+  const dynamicPlayers = useMemo(() => {
+    const list = [...BASE_PLAYERS];
+    if (user?.username) {
+      const existingIdx = list.findIndex(
+        (p) => p.name.toLowerCase() === user.username.toLowerCase()
+      );
+      const userEntry = {
+        name: user.username,
+        rating: userRating,
+        xp: userXP,
+        solved: solvedProblemSlugs.length,
+        change: 25,
+        isCurrentUser: true,
+      };
+      if (existingIdx !== -1) {
+        list[existingIdx] = userEntry;
+      } else {
+        list.push(userEntry);
+      }
+    }
+    return list;
+  }, [user, userRating, userXP, solvedProblemSlugs]);
+
   const sorted = useMemo(
-    () => [...players].sort((a, b) => b[tab.field] - a[tab.field]),
-    [tab],
+    () => [...dynamicPlayers].sort((a, b) => b[tab.field] - a[tab.field]),
+    [dynamicPlayers, tab]
   );
-  const rows = sorted.slice((page - 1) * 4, page * 4);
+
+  const PAGE_SIZE = 8;
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE) || 1;
+  const rows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   const chooseTab = (next) => {
     setTab(next);
     setPage(1);
   };
+
   return (
     <PublicFrame>
       <section ref={root} className="screen-page">
         <div data-reveal className="page-heading">
-          <p className="eyebrow">THE NYC ARENA</p>
+          <p className="eyebrow">NYC DSA ARENA</p>
           <h1>Leaderboard</h1>
           <p>
-            See who is moving through the ranks. Create an account to begin your
-            climb.
+            Real-time global competitive ratings, solved milestones, and weekly XP standings.
           </p>
         </div>
+
         <div data-reveal className="tabs" role="tablist">
           {tabs.map((item) => (
             <button
@@ -77,6 +116,7 @@ export function LeaderboardPage() {
             </button>
           ))}
         </div>
+
         <div data-reveal className="board">
           <div className="board-row board-head">
             <span>Rank</span>
@@ -85,19 +125,25 @@ export function LeaderboardPage() {
             <span>{tab.delta}</span>
           </div>
           {rows.map((player, index) => {
-            const rank = (page - 1) * 4 + index + 1;
+            const rank = (page - 1) * PAGE_SIZE + index + 1;
             const detail =
               tab.id === "solved"
-                ? `${Math.max(3, 12 - rank)} days`
+                ? `${Math.max(1, streakDays || 3)} Days`
                 : tab.id === "xp"
-                  ? `+${player.xp}`
-                  : `+${player.change}`;
+                ? `+${player.xp}`
+                : `+${player.change}`;
+
             return (
-              <Link className="board-row" to="/register" key={player.name}>
+              <Link
+                className={`board-row ${player.isCurrentUser ? "current-user-row" : ""}`}
+                to={`/profile/${player.name.toLowerCase().replace(/\s+/g, "_")}`}
+                key={player.name}
+              >
                 <strong>{String(rank).padStart(2, "0")}</strong>
                 <span>
-                  <i>{player.name.slice(0, 1)}</i>
+                  <i className="avatar-initial">{player.name.slice(0, 1).toUpperCase()}</i>
                   {player.name}
+                  {player.isCurrentUser && <span className="you-pill">YOU</span>}
                 </span>
                 <b>{player[tab.field].toLocaleString()}</b>
                 <em>{detail}</em>
@@ -105,7 +151,10 @@ export function LeaderboardPage() {
             );
           })}
         </div>
-        <Pagination page={page} total={3} onChange={setPage} />
+
+        {totalPages > 1 && (
+          <Pagination page={page} total={totalPages} onChange={setPage} />
+        )}
       </section>
     </PublicFrame>
   );

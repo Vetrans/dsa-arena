@@ -44,49 +44,49 @@
   opacity: 0.52;
   animation: spin-reverse 26s linear infinite;
 }
-.orbit-center {
-  z-index: 2 !important;
-  position: relative;
-}
-.orbit-center em {
-  display: block;
-  font-style: normal;
-  font-size: 0.14em;
-  letter-spacing: 0.1em;
-  margin-top: 10px;
-}
 .orbit-dot {
   position: absolute;
-  width: 15px;
-  height: 15px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: #1742e8;
-  border: 3px solid #fff;
-  box-shadow: 0 0 0 2px #1742e8;
-  z-index: 3;
 }
 .dot-a {
-  top: 17%;
-  left: 9%;
+  top: 14%;
+  left: 20%;
   animation: dot-a 6s ease-in-out infinite;
 }
 .dot-b {
-  right: 11%;
-  bottom: 19%;
-  background: #ffe500;
-  box-shadow: 0 0 0 2px #080808;
-  animation: dot-b 5s ease-in-out infinite;
+  bottom: 18%;
+  right: 14%;
+  animation: dot-b 7s ease-in-out infinite;
+}
+.orbit-tag {
+  position: absolute;
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid var(--ink);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+.tag-one {
+  top: 6%;
+  right: 18%;
+}
+.tag-two {
+  bottom: 8%;
+  left: 14%;
+}
+.tag-three {
+  top: 48%;
+  right: -6%;
 }
 .tag-four {
-  top: 47%;
-  left: -27%;
-  background: #ffe500 !important;
-  animation: badge-wobble 3.8s ease-in-out infinite;
-}
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
+  bottom: 34%;
+  left: -2%;
+  background: #ffe500;
+  animation: badge-wobble 4s ease-in-out infinite;
 }
 @keyframes spin {
   to {
@@ -132,18 +132,25 @@
   }
 }
 
+/* Standalone View Mode for Clicked Sections */
+.standalone-view {
+  min-height: calc(100vh - 76px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
 /* Team Section */
 .team-section {
-  padding: 80px clamp(20px, 6vw, 80px);
+  padding: 60px clamp(20px, 6vw, 80px);
   background: #fff;
-  border-top: 2px solid var(--ink);
-  border-bottom: 2px solid var(--ink);
 }
 
 .text-center {
   text-align: center;
   max-width: 680px;
-  margin: 0 auto 48px;
+  margin: 0 auto 40px;
 }
 
 .section-head h2 {
@@ -234,7 +241,7 @@
 
 /* Contact Us Section */
 .contact-section {
-  padding: 80px clamp(20px, 6vw, 80px);
+  padding: 60px clamp(20px, 6vw, 80px);
   background: #fffef0;
 }
 

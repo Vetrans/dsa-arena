@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Search,
@@ -13,7 +13,8 @@ import {
   Filter,
   Sparkles
 } from "lucide-react";
-import { PROBLEMS, TOPICS } from "../data/problemsData.js";
+import { PROBLEMS as FALLBACK_PROBLEMS, TOPICS } from "../data/problemsData.js";
+import { problemsApi } from "../api/problems.js";
 import { useArenaStore } from "../store/arenaStore.js";
 import "./ProblemsExplorerPage.css";
 
@@ -22,23 +23,37 @@ export function ProblemsExplorerPage() {
   const { solvedProblemSlugs, attemptedProblemSlugs, streakDays } =
     useArenaStore();
 
+  const [allProblems, setAllProblems] = useState(FALLBACK_PROBLEMS);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDifficulty, setSelectedDifficulty] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedTopic, setSelectedTopic] = useState("all");
 
+  useEffect(() => {
+    async function loadProblems() {
+      try {
+        const res = await problemsApi.getProblems({ limit: 100 });
+        if (res?.data && res.data.length > 0) {
+          setAllProblems(res.data);
+        }
+      } catch (err) {
+        console.log("Using cached problem set");
+      }
+    }
+    loadProblems();
+  }, []);
+
   // Daily Challenge problem
-  const dailyProblem = PROBLEMS[2]; // e.g. Maximum Subarray
+  const dailyProblem = allProblems[2] || allProblems[0];
 
   // Filtered problems list
   const filteredProblems = useMemo(() => {
-    return PROBLEMS.filter((prob) => {
-      // Search
+    return allProblems.filter((prob) => {
       const matchesSearch =
         prob.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        prob.tags.some((t) =>
+        (prob.tags && prob.tags.some((t) =>
           t.toLowerCase().includes(searchQuery.toLowerCase())
-        );
+        ));
 
       // Difficulty
       const matchesDiff =
@@ -72,26 +87,26 @@ export function ProblemsExplorerPage() {
   ]);
 
   // Solved Stats calculation
-  const totalCount = PROBLEMS.length;
+  const totalCount = allProblems.length;
   const solvedCount = solvedProblemSlugs.length;
-  const easyTotal = PROBLEMS.filter((p) => p.difficulty === "Easy").length;
-  const easySolved = PROBLEMS.filter(
+  const easyTotal = allProblems.filter((p) => p.difficulty === "Easy").length;
+  const easySolved = allProblems.filter(
     (p) => p.difficulty === "Easy" && solvedProblemSlugs.includes(p.slug)
   ).length;
-  const medTotal = PROBLEMS.filter((p) => p.difficulty === "Medium").length;
-  const medSolved = PROBLEMS.filter(
+  const medTotal = allProblems.filter((p) => p.difficulty === "Medium").length;
+  const medSolved = allProblems.filter(
     (p) => p.difficulty === "Medium" && solvedProblemSlugs.includes(p.slug)
   ).length;
-  const hardTotal = PROBLEMS.filter((p) => p.difficulty === "Hard").length;
-  const hardSolved = PROBLEMS.filter(
+  const hardTotal = allProblems.filter((p) => p.difficulty === "Hard").length;
+  const hardSolved = allProblems.filter(
     (p) => p.difficulty === "Hard" && solvedProblemSlugs.includes(p.slug)
   ).length;
 
   const handlePickRandom = () => {
-    const unsolved = PROBLEMS.filter(
+    const unsolved = allProblems.filter(
       (p) => !solvedProblemSlugs.includes(p.slug)
     );
-    const pool = unsolved.length > 0 ? unsolved : PROBLEMS;
+    const pool = unsolved.length > 0 ? unsolved : allProblems;
     const randomIndex = Math.floor(Math.random() * pool.length);
     navigate(`/problems/${pool[randomIndex].slug}`);
   };

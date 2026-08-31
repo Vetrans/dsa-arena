@@ -35,9 +35,9 @@ export function ContestsPage() {
                 className={
                   index === 0 ? "button button-yellow" : "button button-outline"
                 }
-                to={user ? "/contests/nyc-weekly-07" : "/register"}
+                to={`/contests/${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
               >
-                {user ? "View contest" : "Register to compete"}
+                {index === 0 ? "Enter Arena Room ↗" : "View Contest Details"}
               </Link>
             </article>
           ))}
