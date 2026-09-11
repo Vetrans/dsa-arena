@@ -41,9 +41,11 @@ export function PublicHeader() {
       <div className="header-actions">
         {user ? (
           <>
-            <Link className="admin-chip" to="/admin" title="Admin Control Console">
-              <Shield size={13} /> Admin
-            </Link>
+            {user.role === "admin" && (
+              <Link className="admin-chip" to="/admin" title="Admin Control Console">
+                <Shield size={13} /> Admin
+              </Link>
+            )}
             <Link className="settings-chip" to="/settings" title="User Settings">
               <Settings size={14} />
             </Link>

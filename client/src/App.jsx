@@ -6,6 +6,7 @@ import { ProductPage } from "./pages/ProductPage.jsx";
 import { LeaderboardPage } from "./pages/LeaderboardPage.jsx";
 import { ContestsPage } from "./pages/ContestsPage.jsx";
 import { NotFoundPage } from "./pages/NotFoundPage.jsx";
+import { ProtectedRoute, AdminRoute } from "./components/auth/RouteGuards.jsx";
 
 // Dedicated Arena Core Pages
 import { DashboardPage } from "./pages/DashboardPage.jsx";
@@ -45,17 +46,69 @@ export default function App() {
 
       {/* Main Internal Arena Application (Protected Shell) */}
       <Route element={<AppShell />}>
-        <Route path="/dashboard" element={<DashboardPage />} />
+        {/* Publicly Browseable Problems Explorer */}
         <Route path="/problems" element={<ProblemsExplorerPage />} />
         <Route path="/problems/:slug" element={<ProblemWorkspacePage />} />
-        <Route path="/battles" element={<BattleArenaPage />} />
+
+        {/* Member-Only Authenticated Routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/battles"
+          element={
+            <ProtectedRoute>
+              <BattleArenaPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/contests/:slug" element={<ContestArenaPage />} />
-        <Route path="/roadmap" element={<RoadmapPage />} />
-        <Route path="/submissions" element={<SubmissionsPage />} />
-        <Route path="/achievements" element={<AchievementsPage />} />
+        <Route
+          path="/roadmap"
+          element={
+            <ProtectedRoute>
+              <RoadmapPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/submissions"
+          element={
+            <ProtectedRoute>
+              <SubmissionsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/achievements"
+          element={
+            <ProtectedRoute>
+              <AchievementsPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/profile/:username" element={<ProfilePage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Auxiliary Pages */}
         {remainingProductPages.map(([path, title, description]) => (
@@ -67,8 +120,15 @@ export default function App() {
         ))}
       </Route>
 
-      {/* Admin Super-Console Management Portal */}
-      <Route path="/admin" element={<AdminLayout />}>
+      {/* Admin Super-Console Management Portal (Protected by AdminRoute) */}
+      <Route
+        path="/admin"
+        element={
+          <AdminRoute>
+            <AdminLayout />
+          </AdminRoute>
+        }
+      >
         <Route index element={<AdminDashboard />} />
         <Route path="contests" element={<AdminContests />} />
         <Route path="problems" element={<AdminProblems />} />

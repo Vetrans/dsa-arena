@@ -25,6 +25,7 @@ import dailyChallengeRoutes from './routes/dailyChallengeRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import contestRoutes from './routes/contestRoutes.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -50,6 +51,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/auth', authRoutes); // Temporary compatibility route; remove after client migration.
 app.use('/api/users', userRoutes);
 app.use('/api/problems', problemRoutes);
+app.use('/api/contests', contestRoutes);
 app.use('/api/topics', topicRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/leaderboards', leaderboardRoutes);

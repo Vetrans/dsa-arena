@@ -17,3 +17,4 @@ export { LeaderboardSnapshot } from './LeaderboardSnapshot.js';
 export { Report } from './Report.js';
 export { AdminAction } from './AdminAction.js';
 export { FeatureFlag } from './FeatureFlag.js';
+export { Contest } from './Contest.js';

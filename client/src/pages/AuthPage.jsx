@@ -1,27 +1,53 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
+import { Shield, Lock, Mail, User, ArrowRight, CheckCircle2 } from "lucide-react";
 import logo from "../assets/nyc-logo.jpg";
 import { useDemoAuth } from "../store/demoAuthStore.js";
-const INVITE_KEY = "NYC-DISCORD-2026";
+
 export function AuthPage({ mode }) {
-  const register = mode === "register";
-  const nav = useNavigate();
-  const { login, register: save } = useDemoAuth();
+  const isRegister = mode === "register";
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login, register, isLoading } = useDemoAuth();
+
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const submit = (event) => {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    if (register && data.get("inviteKey") !== INVITE_KEY) {
-      setError(
-        "That invitation key is not valid. Get your key from the NYC Discord.",
-      );
+
+  const searchParams = new URLSearchParams(location.search);
+  const redirectPath = searchParams.get("redirect") || "/dashboard";
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
       return;
     }
-    register
-      ? save(data.get("username"), data.get("email"))
-      : login(data.get("email"));
-    nav("/dashboard");
+
+    try {
+      if (isRegister) {
+        if (!username.trim()) {
+          setError("Username is required.");
+          return;
+        }
+        await register(username.trim(), email.trim(), password);
+      } else {
+        await login(email.trim(), password);
+      }
+      navigate(redirectPath);
+    } catch (err) {
+      setError(err.message || "Authentication failed. Please check your credentials.");
+    }
   };
+
+  const handleFillAdmin = () => {
+    setEmail("admin@nycdsaarena.com");
+    setPassword("Admin@123456");
+  };
+
   return (
     <main className="auth-page">
       <Link className="brand" to="/">
@@ -29,59 +55,102 @@ export function AuthPage({ mode }) {
         <span>DSA Arena</span>
       </Link>
       <section className="auth-card">
-        <p className="eyebrow">MEMBERS ONLY</p>
-        <h1>{register ? "Claim your arena pass" : "Welcome back."}</h1>
-        <p>
-          {register
-            ? "Use the registration key supplied through the official NYC Discord."
-            : "Log in to return to your arena."}
+        <p className="eyebrow">
+          {isRegister ? "CLAIM YOUR ARENA PASS" : "ARENA ACCESS PORTAL"}
         </p>
-        <form onSubmit={submit}>
-          {register && (
-            <>
-              <label>
-                Username
-                <input required name="username" placeholder="your_username" />
-              </label>
-              <label>
-                NYC registration key
-                <input required name="inviteKey" placeholder="NYC-XXXX-XXXX" />
-              </label>
-            </>
+        <h1>{isRegister ? "Join the NYC Arena" : "Welcome back."}</h1>
+        <p>
+          {isRegister
+            ? "Create your competitive profile and enter real-time 1v1 algorithmic duels."
+            : "Log in with your credentials to continue your problem solving streak."}
+        </p>
+
+        {/* Admin Quick Credentials Option on Login */}
+        {!isRegister && (
+          <div className="admin-hint-strip" style={{
+            background: "#f8fafc",
+            border: "1.5px dashed var(--line)",
+            padding: "10px 14px",
+            marginBottom: "16px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            fontSize: "12px"
+          }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", color: "var(--muted)" }}>
+              <Shield size={14} color="#1742e8" /> <b>Admin Account:</b> admin@nycdsaarena.com
+            </span>
+            <button
+              type="button"
+              onClick={handleFillAdmin}
+              style={{
+                background: "#ffe500",
+                border: "1px solid #000",
+                fontWeight: 800,
+                fontSize: "11px",
+                padding: "3px 8px",
+                cursor: "pointer"
+              }}
+            >
+              Fill Admin
+            </button>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          {isRegister && (
+            <label>
+              Username
+              <input
+                required
+                name="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="e.g. algo_warrior"
+                autoComplete="username"
+              />
+            </label>
           )}
+
           <label>
-            Email
+            Email Address
             <input
               required
               name="email"
               type="email"
-              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@domain.com"
+              autoComplete="email"
             />
           </label>
+
           <label>
             Password
             <input
               required
               name="password"
               type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
+              autoComplete={isRegister ? "new-password" : "current-password"}
             />
           </label>
-          {error && <small className="form-error">{error}</small>}
-          <button className="button button-yellow">
-            {register ? "Create my account" : "Log in"}
+
+          {error && <small className="form-error" style={{ color: "#e11d48", fontWeight: 700, margin: "6px 0", display: "block" }}>{error}</small>}
+
+          <button className="button button-yellow" type="submit" disabled={isLoading}>
+            {isLoading ? "Authenticating..." : isRegister ? "Create Account ↗" : "Log In ↗"}
           </button>
         </form>
-        <p>
-          {register ? "Already a member?" : "Need an invitation key?"}{" "}
-          <Link to={register ? "/login" : "/register"}>
-            {register ? "Log in" : "Register"}
+
+        <p style={{ marginTop: "16px" }}>
+          {isRegister ? "Already have an account?" : "Need an account?"}{" "}
+          <Link to={isRegister ? "/login" : "/register"}>
+            {isRegister ? "Log In" : "Register"}
           </Link>
         </p>
-        <small className="prototype-note">
-          Prototype key for this frontend preview: <code>{INVITE_KEY}</code>.
-          Move this check to the server before launch.
-        </small>
       </section>
     </main>
   );

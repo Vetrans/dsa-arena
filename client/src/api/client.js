@@ -1,12 +1,14 @@
 import axios from "axios";
 
-const client = axios.create({
+export const client = axios.create({
   baseURL: "/api",
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
+
+export const apiClient = client;
 
 // Response interceptor
 client.interceptors.response.use(

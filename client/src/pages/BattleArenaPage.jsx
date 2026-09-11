@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import Editor from "@monaco-editor/react";
+import { io } from "socket.io-client";
 import {
   Swords,
   Shield,
@@ -13,14 +14,17 @@ import {
   RotateCcw,
   CheckCircle2,
   AlertCircle,
-  ArrowRight
+  ArrowRight,
+  Wifi,
+  WifiOff
 } from "lucide-react";
 import { PROBLEMS } from "../data/problemsData.js";
 import { executeProblemTests } from "../services/sandboxJudge.js";
 import { useArenaStore } from "../store/arenaStore.js";
+import { useDemoAuth } from "../store/demoAuthStore.js";
 import "./BattleArenaPage.css";
 
-const OPPONENTS = [
+const FALLBACK_OPPONENTS = [
   { name: "ManhattanCoder", rating: 1360, initials: "MC", rank: "Gold II" },
   { name: "BrooklynAlgo", rating: 1315, initials: "BA", rank: "Gold I" },
   { name: "QueensByte", rating: 1390, initials: "QB", rank: "Gold III" },
@@ -28,12 +32,15 @@ const OPPONENTS = [
 ];
 
 export function BattleArenaPage() {
+  const { user } = useDemoAuth();
   const { userRating, updateRating, recordSubmission } = useArenaStore();
 
   const [gameState, setGameState] = useState("lobby"); // 'lobby' | 'searching' | 'battle' | 'finished'
+  const [roomId, setRoomId] = useState(null);
   const [opponent, setOpponent] = useState(null);
   const [matchProblem, setMatchProblem] = useState(PROBLEMS[0]);
   const [timeLeft, setTimeLeft] = useState(900); // 15 mins
+  const [socketConnected, setSocketConnected] = useState(false);
 
   // Code state
   const [code, setCode] = useState("");
@@ -42,30 +49,107 @@ export function BattleArenaPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [testResults, setTestResults] = useState(null);
 
-  // Opponent progress simulation
+  // Opponent progress
   const [opponentPassCount, setOpponentPassCount] = useState(0);
   const [opponentStatus, setOpponentStatus] = useState("Analyzing problem...");
   const [matchOutcome, setMatchOutcome] = useState(null); // 'win' | 'loss'
+  const [finishReason, setFinishReason] = useState("");
 
-  // Matchmaking
-  const handleStartQueue = () => {
-    setGameState("searching");
-    setTimeout(() => {
-      const selectedOpponent =
-        OPPONENTS[Math.floor(Math.random() * OPPONENTS.length)];
-      const pool = PROBLEMS.filter((p) => p.difficulty !== "Hard");
-      const chosenProblem = pool[Math.floor(Math.random() * pool.length)];
+  const socketRef = useRef(null);
 
-      setOpponent(selectedOpponent);
-      setMatchProblem(chosenProblem);
-      setCode(chosenProblem?.starterCode?.javascript || "function solution() {\n  // Code here\n}");
-      setTimeLeft(900);
+  // Connect real-time socket on mount
+  useEffect(() => {
+    const socket = io("http://localhost:5000", {
+      transports: ["websocket", "polling"],
+      reconnectionAttempts: 3,
+      timeout: 3000
+    });
+
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      setSocketConnected(true);
+    });
+
+    socket.on("disconnect", () => {
+      setSocketConnected(false);
+    });
+
+    socket.on("match_found", (data) => {
+      setRoomId(data.roomId);
+      const otherPlayer = data.players.find((p) => p.socketId !== socket.id) || {
+        username: "Live Opponent",
+        rating: 1350,
+        initials: "OP"
+      };
+      setOpponent({
+        name: otherPlayer.username,
+        rating: otherPlayer.rating,
+        initials: otherPlayer.username.slice(0, 2).toUpperCase()
+      });
+      if (data.problem) {
+        setMatchProblem(data.problem);
+        setCode(data.problem?.starterCode?.javascript || "// Write solution");
+      }
+      setTimeLeft(data.durationSeconds || 900);
       setOpponentPassCount(0);
-      setOpponentStatus("Reading problem statement...");
+      setOpponentStatus("Connected. Reading problem...");
       setTestResults(null);
       setMatchOutcome(null);
       setGameState("battle");
-    }, 2800);
+    });
+
+    socket.on("opponent_progress", (data) => {
+      setOpponentPassCount(data.passedCount || 0);
+      setOpponentStatus(data.statusText || "Opponent progressing...");
+    });
+
+    socket.on("battle_finished", (data) => {
+      if (data.winnerUsername === user?.username || data.winnerSocketId === socket.id) {
+        handleFinishMatch("win", "Solved Problem First!");
+      } else {
+        handleFinishMatch("loss", data.reason || "Opponent Solved First");
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user]);
+
+  // Matchmaking trigger
+  const handleStartQueue = () => {
+    setGameState("searching");
+
+    if (socketConnected && socketRef.current) {
+      socketRef.current.emit("join_matchmaking", {
+        username: user?.username || "Guest_Coder",
+        rating: userRating,
+        userId: user?.id
+      });
+    }
+
+    // Fallback bot matcher if no peer in 4s
+    const fallbackTimer = setTimeout(() => {
+      if (gameState === "searching" && !roomId) {
+        const selectedOpponent =
+          FALLBACK_OPPONENTS[Math.floor(Math.random() * FALLBACK_OPPONENTS.length)];
+        const pool = PROBLEMS.filter((p) => p.difficulty !== "Hard");
+        const chosenProblem = pool[Math.floor(Math.random() * pool.length)];
+
+        setOpponent(selectedOpponent);
+        setMatchProblem(chosenProblem);
+        setCode(chosenProblem?.starterCode?.javascript || "function solution() {\n  // Code here\n}");
+        setTimeLeft(900);
+        setOpponentPassCount(0);
+        setOpponentStatus("Reading problem statement...");
+        setTestResults(null);
+        setMatchOutcome(null);
+        setGameState("battle");
+      }
+    }, 3800);
+
+    return () => clearTimeout(fallbackTimer);
   };
 
   // Timer countdown during battle
@@ -86,43 +170,10 @@ export function BattleArenaPage() {
     return () => clearInterval(timer);
   }, [gameState]);
 
-  // Opponent simulated progression
-  useEffect(() => {
-    if (gameState !== "battle") return;
-
-    const t1 = setTimeout(() => {
-      setOpponentStatus("Drafting solution...");
-    }, 6000);
-
-    const t2 = setTimeout(() => {
-      setOpponentStatus("Running sample test cases (1/3)...");
-      setOpponentPassCount(1);
-    }, 18000);
-
-    const t3 = setTimeout(() => {
-      setOpponentStatus("Debugging edge cases (2/3)...");
-      setOpponentPassCount(2);
-    }, 38000);
-
-    const t4 = setTimeout(() => {
-      setOpponentStatus("Submitting full solution...");
-      setOpponentPassCount(3);
-      // If user hasn't won yet by 65s, opponent wins
-      handleFinishMatch("loss", "Opponent Solved First");
-    }, 65000);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
-    };
-  }, [gameState]);
-
   const handleFinishMatch = (outcome, reason) => {
-    if (gameState === "finished") return;
     setGameState("finished");
     setMatchOutcome(outcome);
+    setFinishReason(reason);
 
     const ratingDelta = outcome === "win" ? 32 : -18;
     updateRating(ratingDelta);
@@ -134,10 +185,28 @@ export function BattleArenaPage() {
       const res = await executeProblemTests({
         code,
         language,
-        testCases: matchProblem.testCases,
+        testCases: matchProblem.testCases || [
+          { input: matchProblem.examples?.[0]?.input || "", expected: matchProblem.examples?.[0]?.output || "" }
+        ],
         isFullSubmit: false
       });
       setTestResults(res);
+
+      // Broadcast progress via socket
+      if (socketRef.current && roomId) {
+        socketRef.current.emit("test_progress", {
+          roomId,
+          passedCount: res.passedCount,
+          totalCount: res.totalTests,
+          statusText: `Passed ${res.passedCount}/${res.totalTests} sample test cases`
+        });
+      }
+    } catch (err) {
+      setTestResults({
+        passed: false,
+        summary: "Execution error: " + err.message,
+        details: []
+      });
     } finally {
       setIsRunning(false);
     }
@@ -149,26 +218,29 @@ export function BattleArenaPage() {
       const res = await executeProblemTests({
         code,
         language,
-        testCases: matchProblem.testCases,
+        testCases: matchProblem.testCases || [
+          { input: matchProblem.examples?.[0]?.input || "", expected: matchProblem.examples?.[0]?.output || "" }
+        ],
         isFullSubmit: true
       });
       setTestResults(res);
 
-      if (res.verdict === "ACCEPTED") {
-        handleFinishMatch("win", "All Testcases Accepted");
-        recordSubmission({
-          problemSlug: matchProblem.slug,
-          problemTitle: matchProblem.title,
-          verdict: "ACCEPTED",
-          verdictLabel: "Accepted (1v1 Battle)",
-          language,
-          runtime: res.runtime || 40,
-          memory: res.memory || 41.2,
-          code,
-          xpReward: 50,
-          ratingReward: 32
-        });
+      if (res.passed) {
+        if (socketRef.current && roomId) {
+          socketRef.current.emit("submit_solution", {
+            roomId,
+            code,
+            language
+          });
+        }
+        handleFinishMatch("win", "All 3/3 Hidden Test Cases Passed!");
       }
+    } catch (err) {
+      setTestResults({
+        passed: false,
+        summary: "Execution error: " + err.message,
+        details: []
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -234,7 +306,7 @@ export function BattleArenaPage() {
         <div className="battle-searching">
           <div className="radar-spinner" />
           <h2>SEARCHING FOR OPPONENT...</h2>
-          <p>Matching skill rating within ±50 ELO range ({userRating})</p>
+          <p>Matching skill rating within ±150 ELO range ({userRating})</p>
         </div>
       )}
 
@@ -293,11 +365,13 @@ export function BattleArenaPage() {
               </div>
               <div className="bp-body">
                 <p>{matchProblem.description}</p>
-                <div className="bp-examples">
-                  <b>Example:</b>
-                  <code>{matchProblem.examples[0].input}</code>
-                  <span>Output: {matchProblem.examples[0].output}</span>
-                </div>
+                {matchProblem.examples?.[0] && (
+                  <div className="bp-examples">
+                    <b>Example:</b>
+                    <code>{matchProblem.examples[0].input}</code>
+                    <span>Output: {matchProblem.examples[0].output}</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -331,14 +405,21 @@ export function BattleArenaPage() {
                 />
               </div>
 
+              {/* Terminal Feedback Output */}
               {testResults && (
-                <div className={`battle-result-bar res-${testResults.verdict.toLowerCase()}`}>
-                  {testResults.verdict === "ACCEPTED" ? (
-                    <CheckCircle2 size={16} />
-                  ) : (
-                    <AlertCircle size={16} />
-                  )}
-                  <span>{testResults.verdictLabel} ({testResults.passedTestCases}/{testResults.totalTestCases} Tests)</span>
+                <div className="be-output-panel">
+                  <div className="beo-head">
+                    {testResults.passed ? (
+                      <span className="beo-success">
+                        <CheckCircle2 size={14} /> All Tests Passed
+                      </span>
+                    ) : (
+                      <span className="beo-fail">
+                        <AlertCircle size={14} /> Tests Failed
+                      </span>
+                    )}
+                    <span>{testResults.summary}</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -346,45 +427,39 @@ export function BattleArenaPage() {
         </div>
       )}
 
-      {/* FINISHED STATE MODAL */}
+      {/* MATCH FINISHED MODAL */}
       {gameState === "finished" && (
-        <div className="match-outcome-overlay">
-          <div className={`outcome-card outcome-${matchOutcome}`}>
+        <div className="battle-finished-modal">
+          <div className="bfm-card">
             {matchOutcome === "win" ? (
-              <>
-                <div className="outcome-icon win-icon">
-                  <Trophy size={54} />
-                </div>
-                <h2>VICTORY ACHIEVED!</h2>
-                <p>You conquered the challenge before {opponent?.name}!</p>
-                <div className="rating-reward-box">
-                  <span>RATING CHANGE</span>
-                  <b className="plus-rating">+32 PTS</b>
-                  <small>New Rating: {userRating + 32} PTS</small>
-                </div>
-              </>
+              <div className="bfm-hero bfm-win">
+                <Trophy size={48} />
+                <h2>VICTORY!</h2>
+                <p>{finishReason || "You solved the problem first and outpaced your opponent!"}</p>
+                <div className="elo-gain-pill">+32 RATING POINTS EARNED</div>
+              </div>
             ) : (
-              <>
-                <div className="outcome-icon loss-icon">
-                  <Skull size={54} />
-                </div>
+              <div className="bfm-hero bfm-loss">
+                <Skull size={48} />
                 <h2>DEFEAT</h2>
-                <p>{opponent?.name} solved the problem first.</p>
-                <div className="rating-reward-box">
-                  <span>RATING CHANGE</span>
-                  <b className="minus-rating">-18 PTS</b>
-                  <small>New Rating: {Math.max(800, userRating - 18)} PTS</small>
-                </div>
-              </>
+                <p>{finishReason || "Opponent solved the problem before you or time expired."}</p>
+                <div className="elo-loss-pill">-18 RATING POINTS</div>
+              </div>
             )}
 
-            <div className="outcome-btns">
-              <button className="button button-yellow" onClick={handleStartQueue}>
-                Rematch / Find Another
+            <div className="bfm-actions">
+              <button
+                className="button button-yellow"
+                onClick={() => {
+                  setGameState("lobby");
+                  setRoomId(null);
+                }}
+              >
+                <RotateCcw size={15} /> Play Another Match
               </button>
-              <button className="button button-outline" onClick={() => setGameState("lobby")}>
-                Return to Lobby
-              </button>
+              <Link className="button button-outline" to="/dashboard">
+                Return to Dashboard
+              </Link>
             </div>
           </div>
         </div>
