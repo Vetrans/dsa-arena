@@ -1,95 +1,109 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Pagination } from "../components/app/Pagination.jsx";
 import { PublicFrame } from "../components/app/PublicHeader.jsx";
 import { useReveal } from "../hooks/useReveal.js";
 import { useDemoAuth } from "../store/demoAuthStore.js";
-import { useArenaStore } from "../store/arenaStore.js";
-import { Trophy, TrendingUp, Zap, CheckCircle2 } from "lucide-react";
-
-const BASE_PLAYERS = [
-  { name: "Aarav Shah", rating: 2113, xp: 2850, solved: 178, change: 38 },
-  { name: "Meera Iyer", rating: 2058, xp: 3180, solved: 191, change: 26 },
-  { name: "Rohan Kapoor", rating: 1994, xp: 2660, solved: 169, change: 18 },
-  { name: "Ishita Jain", rating: 1937, xp: 3510, solved: 204, change: 31 },
-  { name: "Dev Malhotra", rating: 1879, xp: 2210, solved: 154, change: 14 },
-  { name: "Sara Khan", rating: 1826, xp: 2930, solved: 183, change: 22 },
-  { name: "Kabir Singh", rating: 1773, xp: 2450, solved: 161, change: 17 },
-  { name: "Anaya Rao", rating: 1718, xp: 3380, solved: 199, change: 29 },
-  { name: "Arjun Gupta", rating: 1662, xp: 2040, solved: 146, change: 11 },
-  { name: "Zoya Ali", rating: 1604, xp: 2760, solved: 175, change: 20 },
-  { name: "Vihaan Das", rating: 1548, xp: 2380, solved: 158, change: 15 },
-  { name: "Tanya Bose", rating: 1491, xp: 3090, solved: 188, change: 25 },
-];
+import { leaderboardApi } from "../api/arenaApi.js";
+import { Trophy, TrendingUp, Zap, CheckCircle2, Flame, Loader2 } from "lucide-react";
 
 const tabs = [
   {
     id: "rating",
     label: "Global Rating",
-    field: "rating",
+    metric: "rating",
     unit: "Rating",
-    delta: "Change",
+    delta: "Tier",
   },
   {
     id: "xp",
-    label: "Weekly XP",
-    field: "xp",
+    label: "Total XP",
+    metric: "xp",
     unit: "XP Earned",
-    delta: "This Week",
+    delta: "Level",
   },
   {
-    id: "solved",
+    id: "problems_solved",
     label: "Problems Solved",
-    field: "solved",
+    metric: "problems_solved",
     unit: "Solved",
     delta: "Streak",
   },
+  {
+    id: "streak",
+    label: "Daily Streak",
+    metric: "streak",
+    unit: "Days",
+    delta: "Status",
+  }
 ];
 
 export function LeaderboardPage() {
   const [tab, setTab] = useState(tabs[0]);
   const [page, setPage] = useState(1);
+  const [rankings, setRankings] = useState([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentUserRank, setCurrentUserRank] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const root = useReveal();
 
   const { user } = useDemoAuth();
-  const { userRating, userXP, solvedProblemSlugs, streakDays } = useArenaStore();
 
-  // Combine live user with base leaderboard dynamically
-  const dynamicPlayers = useMemo(() => {
-    const list = [...BASE_PLAYERS];
-    if (user?.username) {
-      const existingIdx = list.findIndex(
-        (p) => p.name.toLowerCase() === user.username.toLowerCase()
-      );
-      const userEntry = {
-        name: user.username,
-        rating: userRating,
-        xp: userXP,
-        solved: solvedProblemSlugs.length,
-        change: 25,
-        isCurrentUser: true,
-      };
-      if (existingIdx !== -1) {
-        list[existingIdx] = userEntry;
-      } else {
-        list.push(userEntry);
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchLeaderboardData() {
+      setIsLoading(true);
+      try {
+        const res = await leaderboardApi.getLeaderboard({
+          metric: tab.metric,
+          page,
+          limit: 10
+        });
+
+        if (isMounted && res) {
+          const list = res.data || [];
+          setRankings(list);
+          setTotalPages(res.pages || 1);
+          setTotalCount(res.total || list.length);
+          if (res.currentUserRank) {
+            setCurrentUserRank(res.currentUserRank);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load dynamic leaderboard:", err);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     }
-    return list;
-  }, [user, userRating, userXP, solvedProblemSlugs]);
 
-  const sorted = useMemo(
-    () => [...dynamicPlayers].sort((a, b) => b[tab.field] - a[tab.field]),
-    [dynamicPlayers, tab]
-  );
-
-  const PAGE_SIZE = 8;
-  const totalPages = Math.ceil(sorted.length / PAGE_SIZE) || 1;
-  const rows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    fetchLeaderboardData();
+    return () => {
+      isMounted = false;
+    };
+  }, [tab.metric, page]);
 
   const chooseTab = (next) => {
     setTab(next);
     setPage(1);
+  };
+
+  const getMetricValue = (player) => {
+    const stats = player.stats || {};
+    if (tab.id === "rating") return stats.rating || 1200;
+    if (tab.id === "xp") return stats.xp || 0;
+    if (tab.id === "problems_solved") return stats.problemsSolved || 0;
+    if (tab.id === "streak") return stats.currentStreak || 0;
+    return 0;
+  };
+
+  const getDeltaValue = (player) => {
+    const stats = player.stats || {};
+    if (tab.id === "rating") return stats.rank || "Novice";
+    if (tab.id === "xp") return `Lvl ${stats.level || 1}`;
+    if (tab.id === "problems_solved") return `${stats.currentStreak || 0}d Streak`;
+    if (tab.id === "streak") return stats.currentStreak > 0 ? "🔥 Active" : "Inactive";
+    return "";
   };
 
   return (
@@ -97,9 +111,9 @@ export function LeaderboardPage() {
       <section ref={root} className="screen-page">
         <div data-reveal className="page-heading">
           <p className="eyebrow">NYC DSA ARENA</p>
-          <h1>Leaderboard</h1>
+          <h1>Live Leaderboard</h1>
           <p>
-            Real-time global competitive ratings, solved milestones, and weekly XP standings.
+            Real-time global competitive ratings, solved milestones, and live standings calculated from actual arena submissions.
           </p>
         </div>
 
@@ -124,32 +138,41 @@ export function LeaderboardPage() {
             <span>{tab.unit}</span>
             <span>{tab.delta}</span>
           </div>
-          {rows.map((player, index) => {
-            const rank = (page - 1) * PAGE_SIZE + index + 1;
-            const detail =
-              tab.id === "solved"
-                ? `${Math.max(1, streakDays || 3)} Days`
-                : tab.id === "xp"
-                ? `+${player.xp}`
-                : `+${player.change}`;
 
-            return (
-              <Link
-                className={`board-row ${player.isCurrentUser ? "current-user-row" : ""}`}
-                to={`/profile/${player.name.toLowerCase().replace(/\s+/g, "_")}`}
-                key={player.name}
-              >
-                <strong>{String(rank).padStart(2, "0")}</strong>
-                <span>
-                  <i className="avatar-initial">{player.name.slice(0, 1).toUpperCase()}</i>
-                  {player.name}
-                  {player.isCurrentUser && <span className="you-pill">YOU</span>}
-                </span>
-                <b>{player[tab.field].toLocaleString()}</b>
-                <em>{detail}</em>
-              </Link>
-            );
-          })}
+          {isLoading ? (
+            <div style={{ padding: "40px", textAlign: "center", color: "var(--color-text-secondary, #a1a1aa)" }}>
+              <Loader2 className="animate-spin" size={24} style={{ display: "inline-block", marginRight: "8px", verticalAlign: "middle" }} />
+              Loading live arena rankings...
+            </div>
+          ) : rankings.length === 0 ? (
+            <div style={{ padding: "40px", textAlign: "center", color: "var(--color-text-secondary, #a1a1aa)" }}>
+              No registered contenders yet for this metric. Start solving to claim rank #1!
+            </div>
+          ) : (
+            rankings.map((player) => {
+              const isCurrentUser = user && (user.id === player._id || user.username?.toLowerCase() === player.username?.toLowerCase());
+              const displayName = player.displayName || player.username;
+              const val = getMetricValue(player);
+              const detail = getDeltaValue(player);
+
+              return (
+                <Link
+                  className={`board-row ${isCurrentUser ? "current-user-row" : ""}`}
+                  to={`/profile/${player.username?.toLowerCase()}`}
+                  key={player._id || player.username}
+                >
+                  <strong>{String(player.rank).padStart(2, "0")}</strong>
+                  <span>
+                    <i className="avatar-initial">{(displayName || "U").slice(0, 1).toUpperCase()}</i>
+                    {displayName}
+                    {isCurrentUser && <span className="you-pill">YOU</span>}
+                  </span>
+                  <b>{val.toLocaleString()}</b>
+                  <em>{detail}</em>
+                </Link>
+              );
+            })
+          )}
         </div>
 
         {totalPages > 1 && (

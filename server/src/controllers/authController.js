@@ -2,7 +2,7 @@ import * as authService from '../services/authService.js';
 import { success } from '../utils/apiResponse.js';
 import { env } from '../config/env.js';
 
-const cookieOptions = (maxAge) => ({ httpOnly: true, secure: env.NODE_ENV === 'production', sameSite: 'lax', path: '/api/v1/auth', maxAge });
+const cookieOptions = (maxAge) => ({ httpOnly: true, secure: env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge });
 const metadata = (req) => ({ userAgent: req.get('user-agent') || '', ip: req.ip || '' });
 const setAuthCookies = (res, data) => {
   res.cookie('access_token', data.accessToken, cookieOptions(15 * 60 * 1000));
@@ -12,6 +12,7 @@ const clearAuthCookies = (res) => {
   res.clearCookie('access_token', cookieOptions());
   res.clearCookie('refresh_token', cookieOptions());
 };
+
 
 export const register = async (req, res, next) => { try { const data = await authService.register(req.body, metadata(req)); setAuthCookies(res, data); return success(res, { user: data.user }, 'User registered successfully', 201); } catch (error) { next(error); } };
 export const login = async (req, res, next) => { try { const data = await authService.login(req.body, metadata(req)); setAuthCookies(res, data); return success(res, { user: data.user }, 'Login successful'); } catch (error) { next(error); } };

@@ -1,17 +1,38 @@
-import React, { useState } from "react";
-import { Users, Search, Shield, Ban, CheckCircle, Trash2 } from "lucide-react";
-
-const INITIAL_USERS = [
-  { id: "u_1", username: "alex_coder", email: "alex@nycdsa.com", role: "admin", rating: 1540, solved: 8, status: "ACTIVE", joined: "2026-06-12" },
-  { id: "u_2", username: "sarah_algo", email: "sarah@nycdsa.com", role: "user", rating: 1420, solved: 6, status: "ACTIVE", joined: "2026-07-01" },
-  { id: "u_3", username: "manhattan_dev", email: "mdev@gmail.com", role: "user", rating: 1360, solved: 5, status: "ACTIVE", joined: "2026-07-15" },
-  { id: "u_4", username: "queens_hacker", email: "qhacker@yahoo.com", role: "user", rating: 1290, solved: 3, status: "SUSPENDED", joined: "2026-08-02" },
-  { id: "u_5", username: "subway_byte", email: "sbyte@outlook.com", role: "user", rating: 1315, solved: 4, status: "ACTIVE", joined: "2026-08-10" }
-];
+import React, { useState, useEffect } from "react";
+import { Users, Search, Shield, Ban, CheckCircle, Trash2, Loader2 } from "lucide-react";
+import { adminApi } from "../../api/arenaApi.js";
 
 export function AdminUsers() {
-  const [userList, setUserList] = useState(INITIAL_USERS);
+  const [userList, setUserList] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+
+  const loadUsers = async () => {
+    setLoading(true);
+    try {
+      const res = await adminApi.getUsers({ limit: 100 });
+      const users = res?.data?.users || res?.data || res?.users || [];
+      const normalized = users.map((u) => ({
+        id: u._id || u.id,
+        username: u.username,
+        email: u.email,
+        role: (u.role || "user").toLowerCase(),
+        rating: u.stats?.rating || 1200,
+        solved: u.stats?.problemsSolved || 0,
+        status: u.isSuspended ? "SUSPENDED" : "ACTIVE",
+        joined: u.createdAt ? new Date(u.createdAt).toISOString().split("T")[0] : "Recently"
+      }));
+      setUserList(normalized);
+    } catch (err) {
+      console.error("Failed to load users from backend:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
 
   const filtered = userList.filter(
     (u) =>
@@ -19,28 +40,45 @@ export function AdminUsers() {
       u.email.toLowerCase().includes(search.toLowerCase())
   );
 
-  const toggleRole = (userId) => {
-    setUserList(
-      userList.map((u) => {
-        if (u.id === userId) {
-          const nextRole = u.role === "admin" ? "user" : "admin";
-          return { ...u, role: nextRole };
-        }
-        return u;
-      })
-    );
+  const toggleRole = async (userId) => {
+    const target = userList.find((u) => u.id === userId);
+    if (!target) return;
+    const nextRole = target.role === "admin" ? "USER" : "ADMIN";
+    try {
+      await adminApi.updateUserRole(userId, nextRole);
+      setUserList(
+        userList.map((u) => {
+          if (u.id === userId) {
+            return { ...u, role: nextRole.toLowerCase() };
+          }
+          return u;
+        })
+      );
+    } catch (err) {
+      console.error("Failed to update role:", err);
+    }
   };
 
-  const toggleSuspend = (userId) => {
-    setUserList(
-      userList.map((u) => {
-        if (u.id === userId) {
-          const nextStatus = u.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
-          return { ...u, status: nextStatus };
-        }
-        return u;
-      })
-    );
+  const toggleSuspend = async (userId) => {
+    const target = userList.find((u) => u.id === userId);
+    if (!target) return;
+    const shouldSuspend = target.status === "ACTIVE";
+    try {
+      await adminApi.toggleUserSuspend(userId, {
+        suspend: shouldSuspend,
+        reason: shouldSuspend ? "Administrative action" : "Reinstated"
+      });
+      setUserList(
+        userList.map((u) => {
+          if (u.id === userId) {
+            return { ...u, status: shouldSuspend ? "SUSPENDED" : "ACTIVE" };
+          }
+          return u;
+        })
+      );
+    } catch (err) {
+      console.error("Failed to toggle suspension:", err);
+    }
   };
 
   return (
@@ -81,7 +119,21 @@ export function AdminUsers() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((u) => (
+            {loading ? (
+              <tr>
+                <td colSpan={7} style={{ textAlign: "center", padding: "30px", color: "var(--muted)" }}>
+                  <Loader2 size={18} className="animate-spin" style={{ display: "inline-block", marginRight: "8px" }} />
+                  Loading arena users...
+                </td>
+              </tr>
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={7} style={{ textAlign: "center", padding: "30px", color: "var(--muted)" }}>
+                  No accounts found matching "{search}".
+                </td>
+              </tr>
+            ) : (
+              filtered.map((u) => (
               <tr key={u.id}>
                 <td>
                   <b>@{u.username}</b>
@@ -153,7 +205,7 @@ export function AdminUsers() {
                   </div>
                 </td>
               </tr>
-            ))}
+            )))}
           </tbody>
         </table>
       </div>

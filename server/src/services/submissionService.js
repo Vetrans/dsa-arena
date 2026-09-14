@@ -1,48 +1,110 @@
-import { Problem, Submission, UserProblem, User, RatingHistory, XPTransaction } from '../models/index.js';
+import { Problem, Submission, UserProblem, User, RatingHistory, XPTransaction, ProblemTestCase } from '../models/index.js';
 import { evaluateSubmission } from './judgeService.js';
 import { calculateRating, calculateXP, calculateLevel, calculateRank } from '../config/gameConfig.js';
 import { recordDailyActivity } from './streakService.js';
 import { checkAndUnlockAchievements } from './achievementService.js';
+import { syncUserLeaderboardScore } from './leaderboardService.js';
+import { queueSubmissionEvaluation } from '../queues/submissionQueue.js';
+import { redis, redisAvailable } from '../config/redis.js';
+import { logger } from '../config/logger.js';
 
-export const submitSolution = async ({
+export const SUBMISSION_COMPLETED_CHANNEL = 'submission:completed';
+
+/**
+ * 2.1. Fast Asynchronous Submission API (< 30ms response)
+ * Validates, writes Submission with status QUEUED, and pushes to BullMQ
+ */
+export const submitSolutionAsync = async ({
   userId,
   problemId,
   language,
   code
 }) => {
-  // Fetch problem with all test cases
-  const problem = await Problem.findById(problemId);
+  const problem = await Problem.findById(problemId).select('_id title difficulty status');
   if (!problem) {
     const error = new Error('Problem not found');
     error.statusCode = 404;
     throw error;
   }
 
-  // Evaluate submission against test cases
-  const evalResult = await evaluateSubmission({
-    code,
-    language,
-    testCases: problem.testCases || [],
-    timeLimit: problem.timeLimit,
-    memoryLimit: problem.memoryLimit
-  });
-
-  const isAccepted = evalResult.status === 'ACCEPTED';
-
-  // Create submission record
+  // Create immediate submission record with status QUEUED
   const submission = await Submission.create({
     userId,
     problemId: problem._id,
     language,
     code,
-    status: evalResult.status,
-    runtime: evalResult.runtime,
-    memory: evalResult.memory,
-    passedTestCases: evalResult.passedTestCases,
-    totalTestCases: evalResult.totalTestCases,
-    testResults: evalResult.testResults,
-    errorMessage: evalResult.errorMessage
+    status: 'QUEUED',
+    runtime: 0,
+    memory: 0,
+    passedTestCases: 0,
+    totalTestCases: 0,
+    testResults: []
   });
+
+  // Push to BullMQ queue
+  const job = await queueSubmissionEvaluation({
+    submissionId: submission._id.toString(),
+    userId: userId.toString(),
+    problemId: problem._id.toString(),
+    language,
+    code
+  });
+
+  // If BullMQ/Redis is unavailable, execute asynchronously in process tick
+  if (!job) {
+    process.nextTick(() => {
+      processSubmissionExecution({
+        submissionId: submission._id.toString(),
+        userId: userId.toString(),
+        problemId: problem._id.toString(),
+        language,
+        code
+      }).catch(err => logger.error({ err, submissionId: submission._id }, 'Async fallback execution failed'));
+    });
+  }
+
+  return {
+    submissionId: submission._id,
+    status: 'QUEUED',
+    queuedAt: submission.createdAt
+  };
+};
+
+/**
+ * Worker / Asynchronous Evaluation & Gamification Settlement
+ */
+export const processSubmissionExecution = async ({
+  submissionId,
+  userId,
+  problemId,
+  language,
+  code
+}) => {
+  const [problem, hiddenTestCasesDoc] = await Promise.all([
+    Problem.findById(problemId),
+    ProblemTestCase.findOne({ problemId })
+  ]);
+
+  if (!problem) throw new Error(`Problem not found: ${problemId}`);
+
+  // Combine public test cases and hidden test cases
+  const publicTestCases = problem.testCases || [];
+  const hiddenTestCases = hiddenTestCasesDoc?.testCases || [];
+  const allTestCases = [...publicTestCases, ...hiddenTestCases];
+
+  // Transition to RUNNING
+  await Submission.findByIdAndUpdate(submissionId, { status: 'RUNNING' });
+
+  // Evaluate against test cases
+  const evalResult = await evaluateSubmission({
+    code,
+    language,
+    testCases: allTestCases,
+    timeLimit: problem.timeLimit || 2000,
+    memoryLimit: problem.memoryLimit || 256
+  });
+
+  const isAccepted = evalResult.status === 'ACCEPTED';
 
   // Fetch or create user problem tracking state
   let userProblem = await UserProblem.findOne({ userId, problemId: problem._id });
@@ -86,24 +148,16 @@ export const submitSolution = async ({
     ((problem.stats.acceptedSubmissions || 0) / (problem.stats.totalSubmissions || 1)) * 100
   );
 
-  // Gamification & Reward Settlement (Strictly Idempotent!)
   let gamificationResult = {
     isAccepted,
     isFirstSolve: false,
     xpAwarded: 0,
-    ratingAwarded: 0,
-    newRating: 0,
-    newXP: 0,
-    newLevel: 1,
-    newRank: 'Bronze III',
-    streak: null,
-    newlyUnlockedAchievements: []
+    ratingAwarded: 0
   };
 
   const user = await User.findById(userId);
 
-  if (isAccepted && !wasAlreadySolved) {
-    // First-time Accepted Solve
+  if (isAccepted && !wasAlreadySolved && user) {
     const ratingAward = calculateRating({ difficulty: problem.difficulty });
     const xpAward = calculateXP({
       difficulty: problem.difficulty,
@@ -119,7 +173,6 @@ export const submitSolution = async ({
     const newLevel = calculateLevel(newXP);
     const newRankInfo = calculateRank(newRating);
 
-    // Update User Stats
     user.stats.rating = newRating;
     user.stats.xp = newXP;
     user.stats.level = newLevel;
@@ -136,7 +189,6 @@ export const submitSolution = async ({
       (user.stats.acceptedSubmissions / user.stats.totalSubmissions) * 100
     );
 
-    // Log Rating History Audit Trail
     await RatingHistory.create({
       userId,
       change: ratingAward,
@@ -146,7 +198,6 @@ export const submitSolution = async ({
       sourceType: 'problem'
     });
 
-    // Log XP Transaction Audit Trail
     await XPTransaction.create({
       userId,
       amount: xpAward,
@@ -156,16 +207,12 @@ export const submitSolution = async ({
       sourceType: 'problem'
     });
 
-    // Record User Problem Reward Flag
     userProblem.rewardGranted = true;
     userProblem.xpGranted = xpAward;
     userProblem.ratingGranted = ratingAward;
     problem.stats.solveCount = (problem.stats.solveCount || 0) + 1;
 
-    // Update Streak
     const streakInfo = await recordDailyActivity(userId, 1, xpAward);
-
-    // Check & Trigger Achievements
     const newlyUnlockedAchievements = await checkAndUnlockAchievements(user, {
       problemDifficulty: problem.difficulty,
       topicIds: problem.topics
@@ -173,11 +220,13 @@ export const submitSolution = async ({
 
     await user.save({ validateBeforeSave: false });
 
-    // Enriched Submission Response
-    submission.isFirstAccepted = true;
-    submission.xpAwarded = xpAward;
-    submission.ratingAwarded = ratingAward;
-    await submission.save();
+    // Sync to Redis ZSET O(1) Leaderboards
+    await Promise.allSettled([
+      syncUserLeaderboardScore(userId, 'rating', newRating),
+      syncUserLeaderboardScore(userId, 'xp', newXP),
+      syncUserLeaderboardScore(userId, 'problems_solved', user.stats.problemsSolved),
+      syncUserLeaderboardScore(userId, 'streak', user.stats.currentStreak)
+    ]);
 
     gamificationResult = {
       isAccepted: true,
@@ -191,8 +240,7 @@ export const submitSolution = async ({
       streak: streakInfo,
       newlyUnlockedAchievements
     };
-  } else {
-    // Already solved or Not Accepted
+  } else if (user) {
     user.stats.totalSubmissions = (user.stats.totalSubmissions || 0) + 1;
     if (isAccepted) {
       user.stats.acceptedSubmissions = (user.stats.acceptedSubmissions || 0) + 1;
@@ -201,29 +249,59 @@ export const submitSolution = async ({
       ((user.stats.acceptedSubmissions || 0) / (user.stats.totalSubmissions || 1)) * 100
     );
     await user.save({ validateBeforeSave: false });
-
-    gamificationResult = {
-      isAccepted,
-      isFirstSolve: false,
-      xpAwarded: 0,
-      ratingAwarded: 0,
-      newRating: user.stats.rating || 0,
-      newXP: user.stats.xp || 0,
-      newLevel: user.stats.level || 1,
-      newRank: user.stats.rank || 'Bronze III',
-      streak: null,
-      newlyUnlockedAchievements: []
-    };
   }
 
   await userProblem.save();
   await problem.save();
 
+  // Finalize Submission
+  const updatedSubmission = await Submission.findByIdAndUpdate(
+    submissionId,
+    {
+      status: evalResult.status,
+      runtime: evalResult.runtime,
+      memory: evalResult.memory,
+      passedTestCases: evalResult.passedTestCases,
+      totalTestCases: evalResult.totalTestCases,
+      testResults: evalResult.testResults,
+      errorMessage: evalResult.errorMessage,
+      isFirstAccepted: gamificationResult.isFirstSolve,
+      xpAwarded: gamificationResult.xpAwarded,
+      ratingAwarded: gamificationResult.ratingAwarded
+    },
+    { new: true }
+  );
+
+  // 2.1. Verdict Delivery: Publish to Redis Pub/Sub
+  if (redisAvailable) {
+    try {
+      const payload = JSON.stringify({
+        submissionId,
+        userId,
+        status: evalResult.status,
+        runtime: evalResult.runtime,
+        memory: evalResult.memory,
+        passedTestCases: evalResult.passedTestCases,
+        totalTestCases: evalResult.totalTestCases,
+        testResults: evalResult.testResults,
+        errorMessage: evalResult.errorMessage,
+        gamification: gamificationResult
+      });
+      await redis.publish(SUBMISSION_COMPLETED_CHANNEL, payload);
+      await redis.publish(`${SUBMISSION_COMPLETED_CHANNEL}:${submissionId}`, payload);
+    } catch (err) {
+      logger.warn({ err, submissionId }, 'Failed to publish submission:completed to Redis PubSub');
+    }
+  }
+
   return {
-    submission,
+    submission: updatedSubmission,
     gamification: gamificationResult
   };
 };
+
+export const submitSolution = submitSolutionAsync;
+
 
 export const getSubmissionById = async (id, userId) => {
   const submission = await Submission.findById(id)

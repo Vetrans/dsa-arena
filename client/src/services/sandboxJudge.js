@@ -1,6 +1,6 @@
 /**
  * Safe In-Browser Sandbox Judge Engine
- * Evaluates JavaScript code and executes simulated or backend-connected runs.
+ * Evaluates JavaScript code via dedicated Web Workers and executes simulated or backend-connected runs.
  */
 
 const normalizeValue = (val) => {
@@ -31,75 +31,69 @@ const areEqualOutputs = (actual, expected) => {
   }
 };
 
-const parseInputArgs = (inputStr) => {
-  try {
-    return JSON.parse(`[${inputStr}]`);
-  } catch {
-    // If simple string without quotes
-    return [inputStr];
-  }
-};
+/**
+ * Executes user JavaScript in an isolated Web Worker sandbox with hard timeout termination.
+ */
+export function runInWebWorker(code, input, timeoutMs = 2000) {
+  return new Promise((resolve) => {
+    try {
+      const worker = new Worker(new URL("./evalWorker.js", import.meta.url), {
+        type: "module"
+      });
 
-export const runJavaScriptInSandbox = (userCode, inputStr, timeoutMs = 1500) => {
-  const logs = [];
-  const originalLog = console.log;
+      let finished = false;
 
-  try {
-    const args = parseInputArgs(inputStr);
+      const timer = setTimeout(() => {
+        if (!finished) {
+          finished = true;
+          worker.terminate();
+          resolve({
+            success: false,
+            error: "Time Limit Exceeded (Browser Sandbox 2000ms Limit)",
+            logs: [],
+            runtime: timeoutMs,
+            memory: 0
+          });
+        }
+      }, timeoutMs);
 
-    const wrappedFn = new Function(
-      "customConsole",
-      `
-      const console = {
-        log: (...args) => customConsole.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '))
+      worker.onmessage = (e) => {
+        if (!finished) {
+          finished = true;
+          clearTimeout(timer);
+          worker.terminate();
+          resolve(e.data);
+        }
       };
-      
-      ${userCode}
 
-      // Find callable solution function
-      if (typeof twoSum === 'function') return twoSum(...arguments);
-      if (typeof isValid === 'function') return isValid(...arguments);
-      if (typeof maxSubArray === 'function') return maxSubArray(...arguments);
-      if (typeof merge === 'function') return merge(...arguments);
-      if (typeof lengthOfLongestSubstring === 'function') return lengthOfLongestSubstring(...arguments);
-      if (typeof reverseList === 'function') return reverseList(...arguments);
-      if (typeof climbStairs === 'function') return climbStairs(...arguments);
-      if (typeof coinChange === 'function') return coinChange(...arguments);
-      if (typeof ladderLength === 'function') return ladderLength(...arguments);
-      if (typeof solution === 'function') return solution(...arguments);
+      worker.onerror = (err) => {
+        if (!finished) {
+          finished = true;
+          clearTimeout(timer);
+          worker.terminate();
+          resolve({
+            success: false,
+            error: err.message || "Worker Execution Error",
+            logs: [],
+            runtime: 0,
+            memory: 0
+          });
+        }
+      };
 
-      const match = ${JSON.stringify(userCode)}.match(/(?:function\\s+([a-zA-Z0-9_$]+)|var\\s+([a-zA-Z0-9_$]+)\\s*=\\s*function|const\\s+([a-zA-Z0-9_$]+)\\s*=\\s*\\()/);
-      const fnName = match ? (match[1] || match[2] || match[3]) : null;
-      if (fnName && typeof eval(fnName) === 'function') {
-        return eval(fnName)(...arguments);
-      }
-
-      throw new Error("Could not find a valid solution function to execute. Please ensure your function name matches the starter code.");
-    `
-    );
-
-    const startTime = performance.now();
-    const result = wrappedFn(logs, ...args);
-    const duration = Math.max(1, Math.round(performance.now() - startTime));
-
-    return {
-      success: true,
-      result,
-      outputStr: normalizeValue(result),
-      logs,
-      runtime: duration + Math.floor(Math.random() * 25 + 15), // realistic ms
-      memory: +(38.2 + Math.random() * 5.4).toFixed(1)
-    };
-  } catch (err) {
-    return {
-      success: false,
-      error: err.message || "Runtime Exception",
-      logs,
-      runtime: 0,
-      memory: 0
-    };
-  }
-};
+      worker.postMessage({ code, input });
+    } catch (err) {
+      // Fallback if Web Workers are restricted in environment
+      resolve({
+        success: false,
+        error: err.message || "Worker initialization failed",
+        logs: [],
+        runtime: 0,
+        memory: 0
+      });
+    }
+  });
+}
 
 export const executeProblemTests = async ({
   code,
@@ -148,22 +142,22 @@ export const executeProblemTests = async ({
     const tc = testsToRun[i];
 
     if (language === "javascript") {
-      const run = runJavaScriptInSandbox(code, tc.input);
+      const run = await runInWebWorker(code, tc.input, 2000);
 
       if (!run.success) {
         results.push({
           index: i + 1,
           input: tc.input,
           expected: tc.expected,
-          actual: "Runtime Error",
+          actual: run.error.includes("Time Limit") ? "Time Limit Exceeded" : "Runtime Error",
           passed: false,
           error: run.error,
-          logs: run.logs,
+          logs: run.logs || [],
           isHidden: tc.isHidden
         });
         return {
-          verdict: "RUNTIME_ERROR",
-          verdictLabel: "Runtime Error",
+          verdict: run.error.includes("Time Limit") ? "TIME_LIMIT_EXCEEDED" : "RUNTIME_ERROR",
+          verdictLabel: run.error.includes("Time Limit") ? "Time Limit Exceeded" : "Runtime Error",
           errorMessage: run.error,
           passedTestCases: passedCount,
           totalTestCases: testsToRun.length,
@@ -185,7 +179,7 @@ export const executeProblemTests = async ({
         actual: run.outputStr,
         passed,
         runtime: run.runtime,
-        logs: run.logs,
+        logs: run.logs || [],
         isHidden: tc.isHidden
       });
 

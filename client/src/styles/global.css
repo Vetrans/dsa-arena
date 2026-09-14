@@ -103,6 +103,14 @@ input {
   background: #fff;
   font-weight: 800;
 }
+.user-dd-item:hover {
+  background: #f8fafc;
+  color: #1742e8 !important;
+}
+.user-dd-logout:hover {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+}
 .admin-chip {
   background: #1742e8;
   color: #fff !important;
@@ -206,10 +214,12 @@ input {
   left: -19%;
 }
 .tag-three {
-  right: -22%;
-  bottom: 29%;
+  right: -2%;
+  top: 48%;
   background: #1742e8;
   color: #fff;
+  border: 1px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
 }
 .screen-page {
   max-width: 1100px;

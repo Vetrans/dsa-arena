@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Users,
@@ -9,47 +9,78 @@ import {
   Shield,
   TrendingUp,
   Activity,
-  ArrowRight
+  ArrowRight,
+  CheckCircle2,
+  Clock,
+  Loader2
 } from "lucide-react";
-import { PROBLEMS } from "../../data/problemsData.js";
-import { useArenaStore } from "../../store/arenaStore.js";
+import { adminApi } from "../../api/arenaApi.js";
 
 export function AdminDashboard() {
-  const { submissions } = useArenaStore();
+  const [stats, setStats] = useState(null);
+  const [recentSubmissions, setRecentSubmissions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadAdminStats() {
+      try {
+        const res = await adminApi.getDashboardStats();
+        if (isMounted && res?.data) {
+          setStats(res.data.metrics);
+          setRecentSubmissions(res.data.recentSubmissions || []);
+        }
+      } catch (err) {
+        console.error("Failed to load admin stats:", err);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+    loadAdminStats();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const metrics = [
     {
-      label: "TOTAL REGISTERED USERS",
-      val: "4,820",
+      label: "TOTAL USERS",
+      val: stats ? stats.totalUsers?.toLocaleString() : "...",
+      sub: `${stats?.activeUsers || 0} active`,
       icon: Users,
       colorClass: "am-icon-users"
     },
     {
-      label: "ACTIVE PROBLEMS IN VAULT",
-      val: String(PROBLEMS.length),
+      label: "PUBLISHED PROBLEMS",
+      val: stats ? stats.publishedProblems?.toLocaleString() : "...",
+      sub: `${stats?.totalProblems || 0} total in vault`,
       icon: Code2,
       colorClass: "am-icon-problems"
     },
     {
-      label: "CONTESTS HOSTED",
-      val: "12",
+      label: "TOTAL SUBMISSIONS",
+      val: stats ? stats.totalSubmissions?.toLocaleString() : "...",
+      sub: `${stats?.acceptanceRate || 0}% acceptance rate`,
       icon: Trophy,
       colorClass: "am-icon-contests"
     },
     {
-      label: "OPEN BUG REPORTS",
-      val: "3",
+      label: "PENDING REPORTS & FEEDBACK",
+      val: stats ? (stats.pendingReports + stats.totalFeedback)?.toLocaleString() : "...",
+      sub: `${stats?.pendingReports || 0} open reports`,
       icon: MessageSquare,
       colorClass: "am-icon-feedback"
     }
   ];
+
+  const streamSubmissions = recentSubmissions;
 
   return (
     <div className="admin-dashboard-page">
       <div className="admin-page-header">
         <div>
           <h1>System Overview & Health</h1>
-          <p>Global metrics, platform activity, and administrative management shortcuts.</p>
+          <p>Live metrics, judge stream, and administrative management shortcuts.</p>
         </div>
         <div style={{ display: "flex", gap: "10px" }}>
           <Link to="/admin/contests" className="button button-yellow">
@@ -72,7 +103,8 @@ export function AdminDashboard() {
               </div>
               <div className="am-info">
                 <span>{m.label}</span>
-                <b>{m.val}</b>
+                <b>{isLoading ? "..." : m.val}</b>
+                <small style={{ color: "#71717a", fontSize: "11px", marginTop: "2px" }}>{m.sub}</small>
               </div>
             </div>
           );
@@ -92,35 +124,51 @@ export function AdminDashboard() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Problem</th>
+                <th>User / Problem</th>
                 <th>Language</th>
                 <th>Verdict</th>
                 <th>Runtime</th>
               </tr>
             </thead>
             <tbody>
-              {submissions.slice(0, 5).map((sub) => (
-                <tr key={sub.id}>
-                  <td>
-                    <b>{sub.problemTitle}</b>
+              {streamSubmissions.length === 0 ? (
+                <tr>
+                  <td colSpan="4" style={{ textAlign: "center", padding: "20px", color: "#71717a" }}>
+                    No submissions recorded yet.
                   </td>
-                  <td style={{ textTransform: "uppercase", fontSize: "11px" }}>
-                    {sub.language}
-                  </td>
-                  <td>
-                    <span
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: "900",
-                        color: sub.verdict === "ACCEPTED" ? "#16a34a" : "#dc2626"
-                      }}
-                    >
-                      {sub.verdictLabel}
-                    </span>
-                  </td>
-                  <td>{sub.runtime} ms</td>
                 </tr>
-              ))}
+              ) : (
+                streamSubmissions.map((sub, idx) => {
+                  const title = sub.problemId?.title || sub.problemTitle || "Problem";
+                  const username = sub.userId?.username || "Contender";
+                  const verdict = sub.status || sub.verdict || "PENDING";
+                  const isAccepted = verdict === "ACCEPTED";
+
+                  return (
+                    <tr key={sub._id || sub.id || idx}>
+                      <td>
+                        <b>{title}</b>
+                        <div style={{ fontSize: "11px", color: "#71717a" }}>by {username}</div>
+                      </td>
+                      <td style={{ textTransform: "uppercase", fontSize: "11px" }}>
+                        {sub.language}
+                      </td>
+                      <td>
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: "900",
+                            color: isAccepted ? "#16a34a" : "#dc2626"
+                          }}
+                        >
+                          {verdict}
+                        </span>
+                      </td>
+                      <td>{sub.runtime ? `${sub.runtime} ms` : "-"}</td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -129,25 +177,25 @@ export function AdminDashboard() {
         <div className="admin-table-card">
           <div className="admin-table-card-head">
             <h2>Infrastructure Status</h2>
-            <span className="admin-status-pill">All Systems Operational</span>
+            <span className="admin-status-pill">Live Cluster</span>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "14px", fontSize: "13px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
-              <span>MongoDB Primary Cluster</span>
-              <b style={{ color: "#16a34a" }}>Healthy (3 Nodes)</b>
+              <span>MongoDB Database</span>
+              <b style={{ color: "#16a34a" }}>Connected & Syncing</b>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
-              <span>Redis Standings Cache</span>
-              <b style={{ color: "#16a34a" }}>Active (0.4ms latency)</b>
+              <span>Redis Leaderboards & Sockets</span>
+              <b style={{ color: "#16a34a" }}>Active</b>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
-              <span>Judge0 / Sandbox Workers</span>
-              <b style={{ color: "#16a34a" }}>8 Containers Ready</b>
+              <span>Dynamic Problem Vault</span>
+              <b style={{ color: "#16a34a" }}>{stats?.totalProblems || 0} Registered</b>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
-              <span>Active WebSocket Sockets</span>
-              <b>1,240 Connected</b>
+              <span>Total Active Users</span>
+              <b>{stats?.activeUsers || 0} Registered</b>
             </div>
           </div>
         </div>

@@ -27,6 +27,7 @@ import {
 import { PROBLEMS } from "../data/problemsData.js";
 import { executeProblemTests } from "../services/sandboxJudge.js";
 import { useArenaStore } from "../store/arenaStore.js";
+import { submissionsApi } from "../api/submissions.js";
 import "./ProblemWorkspacePage.css";
 
 const LANGUAGES = [
@@ -55,6 +56,7 @@ export function ProblemWorkspacePage() {
     solvedProblemSlugs,
     saveDraftCode,
     getDraftCode,
+    loadDraftFromIDB,
     unlockedHints,
     unlockHint,
     recordSubmission,
@@ -107,13 +109,25 @@ export function ProblemWorkspacePage() {
 
   // Sync / Load code
   useEffect(() => {
+    let isCurrent = true;
     const saved = getDraftCode(problem.slug, language);
     if (saved) {
       setCode(saved);
     } else {
       setCode(problem.starterCode[language] || "");
+      // Check IndexedDB
+      if (loadDraftFromIDB) {
+        loadDraftFromIDB(problem.slug, language).then((idbCode) => {
+          if (isCurrent && idbCode) {
+            setCode(idbCode);
+          }
+        });
+      }
     }
     setExecutionResult(null);
+    return () => {
+      isCurrent = false;
+    };
   }, [problem.slug, language]);
 
   const handleCodeChange = (newVal) => {
@@ -185,6 +199,14 @@ export function ProblemWorkspacePage() {
         xpReward: problem.rewards?.xp || 25,
         ratingReward: problem.rewards?.rating || 15
       });
+
+      if (problem._id || problem.id) {
+        submissionsApi.submitCode({
+          problemId: problem._id || problem.id,
+          language,
+          code
+        }).catch(() => {});
+      }
 
       if (res.verdict === "ACCEPTED") {
         setShowCelebration(true);
@@ -431,7 +453,7 @@ export function ProblemWorkspacePage() {
             {activeTab === "editorial" && (
               <div className="tab-pane-editorial">
                 <div className="editorial-card">
-                  <div className="editorial-badge">OFFICIAL NYC EDITORIAL</div>
+                  <div className="editorial-badge">OFFICIAL EDITORIAL</div>
                   <h2>{problem.editorial.approach}</h2>
                   <p className="editorial-intuition">{problem.editorial.intuition}</p>
 

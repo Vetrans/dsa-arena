@@ -1,5 +1,7 @@
 import slugify from 'slugify';
-import { Problem, Topic, UserProblem } from '../models/index.js';
+import { Problem, Topic, UserProblem, ProblemTestCase } from '../models/index.js';
+import { getCache, setCache } from '../config/redis.js';
+
 
 export const getProblems = async ({
   page = 1,
@@ -110,26 +112,40 @@ export const getProblems = async ({
 };
 
 export const getProblemBySlug = async (slug, userId = null) => {
-  const problem = await Problem.findOne({ slug })
-    .populate('topics', 'name slug icon description')
-    .populate('author', 'username displayName avatar');
+  const cacheKey = `problem:slug:${slug}`;
+  let baseDoc = null;
 
-  if (!problem) {
-    const error = new Error('Problem not found');
-    error.statusCode = 404;
-    throw error;
+  if (!userId) {
+    baseDoc = await getCache(cacheKey);
   }
 
-  const doc = problem.toObject();
+  if (!baseDoc) {
+    const problem = await Problem.findOne({ slug })
+      .populate('topics', 'name slug icon description')
+      .populate('author', 'username displayName avatar');
 
-  // Strip hidden test cases from public view, only expose sample/public test cases
-  if (doc.testCases) {
-    doc.sampleTestCases = doc.testCases.filter(tc => !tc.isHidden);
-    delete doc.testCases;
+    if (!problem) {
+      const error = new Error('Problem not found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    baseDoc = problem.toObject();
+
+    // Strip hidden test cases from public view, only expose sample/public test cases
+    if (baseDoc.testCases) {
+      baseDoc.sampleTestCases = baseDoc.testCases.filter(tc => !tc.isHidden);
+      delete baseDoc.testCases;
+    }
+
+    // Cache public problem definition for 1 hour
+    await setCache(cacheKey, baseDoc, 3600);
   }
+
+  const doc = { ...baseDoc };
 
   if (userId) {
-    const userProblem = await UserProblem.findOne({ userId, problemId: problem._id });
+    const userProblem = await UserProblem.findOne({ userId, problemId: baseDoc._id });
     doc.userProgress = userProblem ? {
       status: userProblem.status,
       attempts: userProblem.attempts,
@@ -146,6 +162,7 @@ export const getProblemBySlug = async (slug, userId = null) => {
 
   return doc;
 };
+
 
 export const getProblemHints = async (slug, userId, hintLevel) => {
   const problem = await Problem.findOne({ slug });
@@ -206,12 +223,25 @@ export const createProblem = async (data, authorId) => {
   const problemNumber = lastProblem ? lastProblem.problemNumber + 1 : 1;
   const slug = slugify(data.title, { lower: true, strict: true });
 
+  const allTestCases = Array.isArray(data.testCases) ? data.testCases : [];
+  const publicTestCases = allTestCases.filter(tc => !tc.isHidden);
+  const hiddenTestCases = allTestCases.filter(tc => tc.isHidden);
+
   const problem = await Problem.create({
     ...data,
     problemNumber,
     slug,
-    author: authorId
+    author: authorId,
+    testCases: publicTestCases
   });
+
+  if (hiddenTestCases.length > 0) {
+    await ProblemTestCase.findOneAndUpdate(
+      { problemId: problem._id },
+      { testCases: hiddenTestCases },
+      { upsert: true, new: true }
+    );
+  }
 
   return problem;
 };
@@ -219,6 +249,21 @@ export const createProblem = async (data, authorId) => {
 export const updateProblem = async (id, data) => {
   if (data.title) {
     data.slug = slugify(data.title, { lower: true, strict: true });
+  }
+
+  if (data.testCases) {
+    const allTestCases = Array.isArray(data.testCases) ? data.testCases : [];
+    const publicTestCases = allTestCases.filter(tc => !tc.isHidden);
+    const hiddenTestCases = allTestCases.filter(tc => tc.isHidden);
+    data.testCases = publicTestCases;
+
+    if (hiddenTestCases.length > 0) {
+      await ProblemTestCase.findOneAndUpdate(
+        { problemId: id },
+        { testCases: hiddenTestCases },
+        { upsert: true, new: true }
+      );
+    }
   }
 
   const problem = await Problem.findByIdAndUpdate(id, data, {
@@ -242,5 +287,7 @@ export const deleteProblem = async (id) => {
     error.statusCode = 404;
     throw error;
   }
+  await ProblemTestCase.deleteOne({ problemId: id });
   return problem;
 };
+

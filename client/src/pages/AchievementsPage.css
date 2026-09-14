@@ -14,6 +14,7 @@
   font-size: clamp(28px, 4vw, 36px);
   font-weight: 900;
   margin: 4px 0 8px;
+  letter-spacing: -0.02em;
 }
 
 .achievements-header p {
@@ -21,19 +22,23 @@
   font-size: 14px;
 }
 
-.ach-category-section {
-  margin-bottom: 36px;
+.achievements-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
 }
 
-.cat-title {
+.ach-category-section h2 {
   font-size: 18px;
   font-weight: 900;
   margin: 0 0 16px;
   border-bottom: 2px solid var(--line);
   padding-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.ach-cards-grid {
+.ach-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
@@ -47,128 +52,183 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.ach-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 6px 6px 0 var(--ink);
 }
 
 .ach-locked {
-  opacity: 0.85;
+  background: #fafafa;
+  opacity: 0.88;
 }
 
-.ach-top {
+.ach-claimed {
+  border-color: #16a34a;
+  box-shadow: 4px 4px 0 #16a34a;
+}
+
+.ach-card-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
-.ach-icon {
-  font-size: 28px;
+.ach-icon-box {
+  width: 44px;
+  height: 44px;
+  background: #f8fafc;
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
 }
 
-.rarity-tag {
+.ach-unlocked .ach-icon-box {
+  background: var(--nyc-yellow);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.rarity-badge {
   font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
-  padding: 3px 8px;
+  letter-spacing: 0.05em;
+  padding: 4px 8px;
   border-radius: 4px;
+  border: 1px solid transparent;
 }
 
 .rarity-common {
   background: #f1f5f9;
   color: #475569;
+  border-color: #cbd5e1;
 }
 
 .rarity-uncommon {
   background: #dcfce7;
   color: #15803d;
+  border-color: #86efac;
 }
 
 .rarity-rare {
   background: #e0e7ff;
   color: #1742e8;
+  border-color: #a5b4fc;
 }
 
 .rarity-epic {
   background: #fef3c7;
   color: #b45309;
+  border-color: #fde68a;
 }
 
-.ach-card h3 {
+.ach-card-body h3 {
   font-size: 16px;
   font-weight: 800;
   margin: 0 0 6px;
+  color: var(--ink);
 }
 
-.ach-desc {
+.ach-card-body p {
   font-size: 13px;
   color: var(--muted);
   line-height: 1.5;
   margin: 0 0 16px;
 }
 
+.ach-card-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px dashed var(--line);
+  padding-top: 14px;
+}
+
 .ach-progress-bar {
-  height: 6px;
+  height: 7px;
   background: #f1f5f9;
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: 4px;
   overflow: hidden;
-  margin-bottom: 6px;
 }
 
 .ach-fill {
   height: 100%;
   background: var(--nyc-yellow);
+  transition: width 0.4s ease;
 }
 
-.ach-progress-text {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--muted);
-  font-weight: 700;
-  margin-bottom: 16px;
-}
-
-.ach-bottom {
+.ach-meta {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid var(--line);
-  padding-top: 12px;
+  font-size: 11px;
+  font-weight: 800;
 }
 
-.ach-reward {
-  font-size: 13px;
-  font-weight: 900;
+.ach-current-target {
+  color: var(--muted);
+}
+
+.ach-reward-xp {
   color: #1742e8;
+}
+
+.claim-xp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--nyc-yellow);
+  color: #0b0b0b;
+  border: 1.5px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: all 0.15s ease;
+}
+
+.claim-xp-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--ink);
 }
 
 .claimed-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
   font-weight: 800;
   color: #16a34a;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  padding: 6px 12px;
+  border-radius: 4px;
+  margin-top: 4px;
 }
 
 .locked-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
   font-weight: 800;
   color: var(--muted);
-}
-
-.claim-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: var(--nyc-yellow);
-  border: 1.5px solid var(--ink);
-  box-shadow: 2px 2px 0 var(--ink);
-  font-size: 11px;
-  font-weight: 900;
-  padding: 4px 10px;
-  cursor: pointer;
+  background: #f1f5f9;
+  border: 1px solid var(--line);
+  padding: 6px 12px;
+  border-radius: 4px;
+  margin-top: 4px;
 }

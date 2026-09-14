@@ -44,6 +44,14 @@ export const analyticsApi = {
   getPersonalAnalytics: () => client.get("/analytics/personal"),
 };
 
+export const contestApi = {
+  getContests: (params) => client.get("/contests", { params }),
+  getContestBySlug: (slug) => client.get(`/contests/${slug}`),
+  createContest: (data) => client.post("/contests", data),
+  registerContest: (slug) => client.post(`/contests/${slug}/register`),
+  deleteContest: (slug) => client.delete(`/contests/${slug}`),
+};
+
 export const adminApi = {
   getDashboardStats: () => client.get("/admin/dashboard"),
   getUsers: (params) => client.get("/admin/users", { params }),
@@ -56,3 +64,4 @@ export const adminApi = {
   updateProblem: (id, data) => client.put(`/problems/${id}`, data),
   deleteProblem: (id) => client.delete(`/problems/${id}`),
 };
+

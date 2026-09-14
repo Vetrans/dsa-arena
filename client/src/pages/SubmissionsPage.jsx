@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   CheckCircle2,
@@ -9,17 +9,44 @@ import {
   Copy,
   Check,
   Eye,
-  History
+  History,
+  Target
 } from "lucide-react";
 import { useArenaStore } from "../store/arenaStore.js";
+import { submissionsApi } from "../api/submissions.js";
 import "./SubmissionsPage.css";
 
 export function SubmissionsPage() {
-  const { submissions } = useArenaStore();
+  const { submissions, syncFromBackend } = useArenaStore();
   const [selectedVerdict, setSelectedVerdict] = useState("all");
   const [selectedLanguage, setSelectedLanguage] = useState("all");
   const [activeCodeModal, setActiveCodeModal] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadSubmissions() {
+      setLoading(true);
+      try {
+        const res = await submissionsApi.getHistory({ limit: 100 });
+        if (isMounted && res) {
+          const list = res.data?.submissions || res.data || res.submissions || [];
+          if (Array.isArray(list) && list.length > 0) {
+            syncFromBackend({ submissions: list });
+          }
+        }
+      } catch (err) {
+        // Fall back to local user store
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    loadSubmissions();
+    return () => {
+      isMounted = false;
+    };
+  }, [syncFromBackend]);
 
   const filteredSubs = submissions.filter((sub) => {
     const matchesVerdict =
@@ -95,7 +122,16 @@ export function SubmissionsPage() {
             {filteredSubs.length === 0 ? (
               <tr>
                 <td colSpan={7} className="no-subs">
-                  No submissions found matching your filters.
+                  {submissions.length === 0 ? (
+                    <div style={{ padding: "30px", textAlign: "center" }}>
+                      <p style={{ color: "#94a3b8", marginBottom: "14px" }}>No code submissions recorded for this account yet.</p>
+                      <Link to="/problems" className="button button-yellow" style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
+                        <Target size={15} /> Explore Problem Catalog
+                      </Link>
+                    </div>
+                  ) : (
+                    "No submissions found matching your filters."
+                  )}
                 </td>
               </tr>
             ) : (

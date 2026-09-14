@@ -128,7 +128,14 @@ export function ContestArenaPage() {
             <ChevronLeft size={16} /> All Contests
           </Link>
           <span className="divider">/</span>
-          <h1>NYC Biweekly Arena #12</h1>
+          <h1>
+            {slug
+              ? slug
+                  .split("-")
+                  .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                  .join(" ")
+              : "NYC Biweekly Arena #12"}
+          </h1>
         </div>
 
         <div className="ch-center">

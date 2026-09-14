@@ -1,47 +1,48 @@
-import React, { useState } from "react";
-import { MessageSquare, CheckCircle, Clock, AlertTriangle, ExternalLink } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { MessageSquare, CheckCircle, Clock, AlertTriangle, ExternalLink, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
-
-const INITIAL_REPORTS = [
-  {
-    id: "rep_1",
-    problemSlug: "two-sum",
-    problemTitle: "Two Sum",
-    category: "WRONG_TESTCASE",
-    reporter: "subway_coder",
-    details: "Test case 3 expects 0-indexed result [0, 1] but explanation mentioned 1-based order in older prompt.",
-    status: "RESOLVED",
-    date: "2026-08-28"
-  },
-  {
-    id: "rep_2",
-    problemSlug: "word-ladder",
-    problemTitle: "Word Ladder",
-    category: "AMBIGUOUS_DESCRIPTION",
-    reporter: "queens_hacker",
-    details: "Please clarify if words in wordList are guaranteed to be lowercase in all languages.",
-    status: "IN_REVIEW",
-    date: "2026-08-30"
-  },
-  {
-    id: "rep_3",
-    problemSlug: "coin-change",
-    problemTitle: "Coin Change",
-    category: "RUNTIME_ISSUE",
-    reporter: "manhattan_dev",
-    details: "Large test case amount=6249 passes in JS in 28ms but might need larger time limit for Python recursion.",
-    status: "OPEN",
-    date: "2026-08-31"
-  }
-];
+import { adminApi } from "../../api/arenaApi.js";
 
 export function AdminFeedback() {
-  const [reports, setReports] = useState(INITIAL_REPORTS);
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const updateStatus = (id, newStatus) => {
-    setReports(
-      reports.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
-    );
+  const loadFeedback = async () => {
+    setLoading(true);
+    try {
+      const res = await adminApi.getFeedback({ limit: 50 });
+      const list = res?.data?.feedbackList || res?.data || res?.feedbackList || [];
+      const normalized = list.map((f) => ({
+        id: f._id || f.id,
+        problemSlug: f.problemId?.slug || "two-sum",
+        problemTitle: f.problemId?.title || "Algorithmic Challenge",
+        category: f.type || f.category || "GENERAL_ISSUE",
+        reporter: f.userId?.username || "arena_user",
+        details: f.content || f.details || f.message || "Feedback submitted",
+        status: f.status || "OPEN",
+        date: f.createdAt ? new Date(f.createdAt).toISOString().split("T")[0] : "Recent"
+      }));
+      setReports(normalized);
+    } catch (err) {
+      console.error("Failed to load feedback:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFeedback();
+  }, []);
+
+  const updateStatus = async (id, newStatus) => {
+    try {
+      await adminApi.updateFeedbackStatus(id, { status: newStatus });
+      setReports(
+        reports.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
+      );
+    } catch (err) {
+      console.error("Failed to update feedback status:", err);
+    }
   };
 
   return (
@@ -71,7 +72,21 @@ export function AdminFeedback() {
             </tr>
           </thead>
           <tbody>
-            {reports.map((rep) => (
+            {loading ? (
+              <tr>
+                <td colSpan={7} style={{ textAlign: "center", padding: "30px", color: "var(--muted)" }}>
+                  <Loader2 size={18} className="animate-spin" style={{ display: "inline-block", marginRight: "8px" }} />
+                  Loading feedback reports...
+                </td>
+              </tr>
+            ) : reports.length === 0 ? (
+              <tr>
+                <td colSpan={7} style={{ textAlign: "center", padding: "30px", color: "var(--muted)" }}>
+                  No feedback reports pending.
+                </td>
+              </tr>
+            ) : (
+              reports.map((rep) => (
               <tr key={rep.id}>
                 <td>
                   <span
@@ -130,7 +145,7 @@ export function AdminFeedback() {
                   </select>
                 </td>
               </tr>
-            ))}
+            )))}
           </tbody>
         </table>
       </div>

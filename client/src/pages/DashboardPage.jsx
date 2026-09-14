@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   Flame,
@@ -18,8 +18,18 @@ import {
 } from "lucide-react";
 import { useDemoAuth } from "../store/demoAuthStore.js";
 import { useArenaStore } from "../store/arenaStore.js";
+import { analyticsApi } from "../api/arenaApi.js";
+import { submissionsApi } from "../api/submissions.js";
 import { PROBLEMS } from "../data/problemsData.js";
 import "./DashboardPage.css";
+
+const getDivisionTitle = (rating) => {
+  if (rating >= 2000) return "Master Division";
+  if (rating >= 1600) return "Platinum Division";
+  if (rating >= 1300) return "Gold Division";
+  if (rating >= 1000) return "Silver Division";
+  return "Bronze Division";
+};
 
 export function DashboardPage() {
   const { user } = useDemoAuth();
@@ -28,8 +38,44 @@ export function DashboardPage() {
     userRating,
     streakDays,
     solvedProblemSlugs,
-    submissions
+    submissions,
+    syncFromBackend
   } = useArenaStore();
+
+  // Fetch real analytics and submissions from backend on mount
+  useEffect(() => {
+    let isMounted = true;
+    async function loadDashboardData() {
+      try {
+        const [analyticsRes, subsRes] = await Promise.allSettled([
+          analyticsApi.getPersonalAnalytics(),
+          submissionsApi.getHistory({ limit: 10 })
+        ]);
+
+        if (!isMounted) return;
+
+        const overview =
+          analyticsRes.status === "fulfilled"
+            ? analyticsRes.value?.data?.overview || analyticsRes.value?.overview
+            : null;
+
+        const subsData =
+          subsRes.status === "fulfilled"
+            ? subsRes.value?.data?.submissions || subsRes.value?.data || subsRes.value?.submissions || []
+            : null;
+
+        if (overview || subsData) {
+          syncFromBackend({ overview, submissions: subsData });
+        }
+      } catch (err) {
+        // Graceful offline fallback to current user-scoped store
+      }
+    }
+    loadDashboardData();
+    return () => {
+      isMounted = false;
+    };
+  }, [syncFromBackend]);
 
   // Dynamic Level math: Level 1 (0-249), Level 2 (250-499), Level 3 (500-749), etc.
   const currentLevel = Math.floor(userXP / 250) + 1;
@@ -63,7 +109,7 @@ export function DashboardPage() {
     (p) => !solvedProblemSlugs.includes(p.slug)
   ).slice(0, 3);
 
-  // Dynamic 30-day activity matrix calculated from real submissions
+  // Dynamic 30-day activity matrix calculated purely from actual submissions
   const activityDays = useMemo(() => {
     const now = new Date();
     const map = {};
@@ -80,7 +126,7 @@ export function DashboardPage() {
       const d = new Date();
       d.setDate(now.getDate() - (29 - i));
       const dateKey = d.toISOString().split("T")[0];
-      const count = map[dateKey] || (i >= 26 ? 1 : 0); // include recent active solves
+      const count = map[dateKey] || 0; // Pure dynamic count with zero fake entries
       return {
         day: i + 1,
         dateKey,
@@ -105,7 +151,7 @@ export function DashboardPage() {
             <div className="welcome-tag">ARENA COMPETITOR</div>
             <h1>@{username}</h1>
             <p className="rank-title">
-              Level {currentLevel} · {userRating >= 1300 ? "Gold Division" : "Silver Division"}
+              Level {currentLevel} · {getDivisionTitle(userRating)}
             </p>
           </div>
         </div>

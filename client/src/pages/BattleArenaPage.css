@@ -1,9 +1,7 @@
-/* Battle Arena Page Styles */
-
 .battle-arena-page {
   max-width: var(--max);
   margin: 0 auto;
-  padding: 32px clamp(16px, 4vw, 40px);
+  padding: 24px clamp(16px, 4vw, 36px);
 }
 
 /* Lobby */
@@ -17,47 +15,51 @@
 .lobby-hero {
   background: #fff;
   border: 2px solid var(--ink);
-  box-shadow: 6px 6px 0 var(--ink);
-  padding: 48px 32px;
-  max-width: 680px;
+  box-shadow: 5px 5px 0 var(--ink);
+  padding: 32px 28px;
+  max-width: 580px;
   width: 100%;
-  margin-bottom: 36px;
+  margin-bottom: 24px;
 }
 
 .swords-icon {
-  width: 88px;
-  height: 88px;
+  width: 68px;
+  height: 68px;
   background: var(--nyc-yellow);
   border: 2px solid var(--ink);
   border-radius: 50%;
   display: grid;
   place-items: center;
-  margin: 0 auto 20px;
-  box-shadow: 3px 3px 0 var(--ink);
+  margin: 0 auto 14px;
+  box-shadow: 2px 2px 0 var(--ink);
 }
 
 .lobby-hero h1 {
-  font-size: 36px;
+  font-size: 28px;
   font-weight: 900;
-  margin: 0 0 12px;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
 }
 
 .lobby-hero p {
   color: var(--muted);
-  font-size: 15px;
-  line-height: 1.6;
-  margin: 0 0 28px;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 20px;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .user-rating-card {
   background: #f8fafc;
   border: 1.5px solid var(--line);
-  padding: 16px;
+  padding: 12px 18px;
   border-radius: 6px;
-  margin-bottom: 28px;
+  margin-bottom: 20px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .ur-lbl {
@@ -411,3 +413,121 @@
   flex-direction: column;
   gap: 10px;
 }
+
+/* Battle Finished Modal (Modern Overlay) */
+.battle-finished-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  backdrop-filter: blur(6px);
+}
+
+.bfm-card {
+  background: #11141f;
+  border: 2px solid var(--nyc-yellow);
+  box-shadow: 0 0 50px rgba(255, 229, 0, 0.25), 6px 6px 0 #000;
+  border-radius: 12px;
+  padding: 36px 32px;
+  max-width: 460px;
+  width: 90%;
+  text-align: center;
+  animation: modal-pop 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #fff;
+}
+
+@keyframes modal-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.bfm-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.bfm-hero svg {
+  margin-bottom: 14px;
+}
+
+.bfm-win svg {
+  color: var(--nyc-yellow);
+  filter: drop-shadow(0 0 16px rgba(255, 229, 0, 0.6));
+}
+
+.bfm-loss svg {
+  color: #f87171;
+  filter: drop-shadow(0 0 16px rgba(239, 68, 68, 0.6));
+}
+
+.bfm-hero h2 {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  margin: 0 0 8px;
+}
+
+.bfm-win h2 {
+  color: var(--nyc-yellow);
+}
+
+.bfm-loss h2 {
+  color: #f87171;
+}
+
+.bfm-hero p {
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 18px;
+}
+
+.elo-gain-pill {
+  display: inline-block;
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.elo-loss-pill {
+  display: inline-block;
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.bfm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bfm-actions .button {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 800;
+}
+

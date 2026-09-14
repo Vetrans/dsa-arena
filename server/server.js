@@ -5,11 +5,15 @@ import { closeRedis, connectRedis } from './src/config/redis.js';
 import { env } from './src/config/env.js';
 import { logger } from './src/config/logger.js';
 import { setupBattleSockets } from './src/sockets/battleSocket.js';
+import { startJudgeWorker } from './src/workers/judgeWorker.js';
+import { setupDistributedScheduler } from './src/schedulers/cronScheduler.js';
 
 let server;
+let judgeWorkerInstance;
 const shutdown = async (signal) => {
   logger.info({ signal }, 'Graceful shutdown started');
   if (server) await new Promise((resolve) => server.close(resolve));
+  if (judgeWorkerInstance) await judgeWorkerInstance.close();
   await Promise.allSettled([mongoose.disconnect(), closeRedis()]);
   process.exit(0);
 };
@@ -22,10 +26,14 @@ process.on('unhandledRejection', (err) => { logger.fatal({ err }, 'Unhandled rej
 await connectDB();
 await connectRedis();
 
+judgeWorkerInstance = startJudgeWorker(5);
+await setupDistributedScheduler();
+
 const { default: app } = await import('./src/app.js');
 const httpServer = http.createServer(app);
-setupBattleSockets(httpServer);
+await setupBattleSockets(httpServer);
 
 server = httpServer.listen(env.PORT, () => {
   logger.info({ port: env.PORT, environment: env.NODE_ENV }, 'API & Real-time WebSocket server listening');
 });
+

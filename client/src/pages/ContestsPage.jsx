@@ -2,60 +2,35 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PublicFrame } from "../components/app/PublicHeader.jsx";
 import { useReveal } from "../hooks/useReveal.js";
-import { apiClient } from "../api/client.js";
-import { Trophy, Clock, Users, ArrowRight, Radio } from "lucide-react";
-
-const DEFAULT_CONTESTS = [
-  {
-    title: "NYC Weekly Contest #07",
-    slug: "nyc-weekly-07",
-    status: "LIVE",
-    durationMinutes: 90,
-    timeText: "Live now · 01:45:12 remaining",
-    problemCount: 4,
-    registeredCount: 342
-  },
-  {
-    title: "Monsoon Algorithm Sprint",
-    slug: "monsoon-algorithm-sprint",
-    status: "UPCOMING",
-    durationMinutes: 120,
-    timeText: "Starts Friday · 18:00 IST",
-    problemCount: 5,
-    registeredCount: 218
-  },
-  {
-    title: "Graph Theory & Trees Duel Night",
-    slug: "graph-theory-night",
-    status: "UPCOMING",
-    durationMinutes: 90,
-    timeText: "Starts Sunday · 20:00 IST",
-    problemCount: 4,
-    registeredCount: 175
-  }
-];
+import { contestApi } from "../api/arenaApi.js";
+import { Trophy, Clock, Users, ArrowRight, Radio, Loader2 } from "lucide-react";
 
 export function ContestsPage() {
-  const [contests, setContests] = useState(DEFAULT_CONTESTS);
-  const [loading, setLoading] = useState(false);
+  const [contests, setContests] = useState([]);
+  const [loading, setLoading] = useState(true);
   const root = useReveal();
 
   useEffect(() => {
+    let isMounted = true;
     const fetchContests = async () => {
       try {
         setLoading(true);
-        const res = await apiClient.get("/api/contests");
-        if (res.data?.data && res.data.data.length > 0) {
-          setContests(res.data.data);
+        const res = await contestApi.getContests();
+        if (isMounted && res?.data) {
+          setContests(res.data);
         }
       } catch (err) {
-        // Keep default dynamic list if backend endpoint is initializing
+        console.error("Failed to load contests:", err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
     fetchContests();
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
 
   return (
     <PublicFrame>

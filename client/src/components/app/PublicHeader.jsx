@@ -4,9 +4,10 @@ import logo from "../../assets/nyc-logo.jpg";
 import { useDemoAuth } from "../../store/demoAuthStore.js";
 import { Footer } from "./Footer.jsx";
 import { APP_NAV_LINKS, PUBLIC_NAV_LINKS } from "../../config/navigation.js";
+import { UserNavDropdown } from "./UserNavDropdown.jsx";
 
 export function PublicHeader() {
-  const { user, logout } = useDemoAuth();
+  const { user } = useDemoAuth();
   const location = useLocation();
   const links = user ? APP_NAV_LINKS : PUBLIC_NAV_LINKS;
 
@@ -46,15 +47,7 @@ export function PublicHeader() {
                 <Shield size={13} /> Admin
               </Link>
             )}
-            <Link className="settings-chip" to="/settings" title="User Settings">
-              <Settings size={14} />
-            </Link>
-            <Link className="user-chip" to={`/profile/${user.username}`}>
-              @{user.username}
-            </Link>
-            <button className="text-button" onClick={logout}>
-              Log out
-            </button>
+            <UserNavDropdown />
           </>
         ) : (
           <>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Code2,
   Plus,
@@ -7,12 +7,15 @@ import {
   CheckCircle,
   Eye,
   FileCode2,
-  Search
+  Search,
+  Loader2
 } from "lucide-react";
-import { PROBLEMS } from "../../data/problemsData.js";
+import { problemsApi } from "../../api/problems.js";
+import { adminApi } from "../../api/arenaApi.js";
 
 export function AdminProblems() {
-  const [problemList, setProblemList] = useState(PROBLEMS);
+  const [problemList, setProblemList] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
 
@@ -30,6 +33,24 @@ export function AdminProblems() {
   const [starterPy, setStarterPy] = useState("def solution(input):\n    # Write code\n    pass");
   const [starterCpp, setStarterCpp] = useState("class Solution {\npublic:\n    void solve() {}\n};");
 
+  const loadProblems = async () => {
+    setIsLoading(true);
+    try {
+      const res = await problemsApi.getProblems({ limit: 100 });
+      if (res?.data) {
+        setProblemList(res.data);
+      }
+    } catch (err) {
+      console.error("Failed to load problems:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProblems();
+  }, []);
+
   const filtered = problemList.filter(
     (p) =>
       p.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -46,20 +67,16 @@ export function AdminProblems() {
     );
   };
 
-  const handleAddProblem = (e) => {
+  const handleAddProblem = async (e) => {
     e.preventDefault();
     if (!title.trim()) return;
 
     const newProb = {
-      id: slug || `prob-${Date.now()}`,
-      problemNumber: problemList.length + 1,
       title,
       slug,
       difficulty,
-      topics: topics.split(",").map((t) => t.trim()),
       topicSlugs: topics.split(",").map((t) => t.trim().toLowerCase().replace(/\s+/g, "-")),
       tags: topics.split(",").map((t) => t.trim()),
-      acceptance: "50.0%",
       rewards: { xp: Number(xpReward), rating: Number(ratingReward) },
       description,
       examples: [
@@ -74,8 +91,7 @@ export function AdminProblems() {
       editorial: {
         approach: "Optimal Algorithm",
         intuition: "Linear scan with cache.",
-        timeComplexity: "O(N)",
-        spaceComplexity: "O(1)",
+        complexity: { time: "O(N)", space: "O(1)" },
         solutionCode: starterJs
       },
       testCases: [
@@ -90,18 +106,29 @@ export function AdminProblems() {
       }
     };
 
-    setProblemList([...problemList, newProb]);
-    setShowModal(false);
-    setTitle("");
-    setSlug("");
-    setDescription("");
-  };
-
-  const handleDelete = (slugToDelete) => {
-    if (window.confirm(`Delete problem '${slugToDelete}' from vault?`)) {
-      setProblemList(problemList.filter((p) => p.slug !== slugToDelete));
+    try {
+      await adminApi.createProblem(newProb);
+      await loadProblems();
+      setShowModal(false);
+      setTitle("");
+      setSlug("");
+      setDescription("");
+    } catch (err) {
+      alert("Failed to create problem: " + (err.message || "Unknown error"));
     }
   };
+
+  const handleDelete = async (probId, slugToDelete) => {
+    if (window.confirm(`Delete problem '${slugToDelete}' from vault?`)) {
+      try {
+        await adminApi.deleteProblem(probId);
+        setProblemList(problemList.filter((p) => p._id !== probId && p.slug !== slugToDelete));
+      } catch (err) {
+        alert("Failed to delete problem: " + (err.message || "Unknown error"));
+      }
+    }
+  };
+
 
   return (
     <div className="admin-problems-page">
@@ -134,74 +161,96 @@ export function AdminProblems() {
           />
         </div>
 
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Title</th>
-              <th>Difficulty</th>
-              <th>Topics</th>
-              <th>Acceptance</th>
-              <th>Rewards</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((prob) => (
-              <tr key={prob.slug}>
-                <td>{prob.problemNumber}</td>
-                <td>
-                  <b>{prob.title}</b>
-                  <div style={{ fontSize: "11px", color: "var(--muted)" }}>
-                    /{prob.slug}
-                  </div>
-                </td>
-                <td>
-                  <span
-                    className={`diff-pill diff-${prob.difficulty.toLowerCase()}`}
-                  >
-                    {prob.difficulty}
-                  </span>
-                </td>
-                <td>
-                  <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
-                    {prob.topics.map((t) => (
-                      <span
-                        key={t}
-                        style={{
-                          fontSize: "10px",
-                          background: "#f1f5f9",
-                          padding: "2px 6px",
-                          borderRadius: "3px"
-                        }}
-                      >
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                </td>
-                <td>{prob.acceptance}</td>
-                <td>
-                  +{prob.rewards?.xp || 20} XP · +{prob.rewards?.rating || 15} PTS
-                </td>
-                <td>
-                  <button
-                    onClick={() => handleDelete(prob.slug)}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "#dc2626",
-                      cursor: "pointer"
-                    }}
-                    title="Delete Problem"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </td>
+        {isLoading ? (
+          <div style={{ padding: "30px", textAlign: "center", color: "#71717a" }}>
+            <Loader2 className="animate-spin" size={24} style={{ display: "inline-block", marginRight: "8px" }} />
+            Loading problems from database...
+          </div>
+        ) : (
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Difficulty</th>
+                <th>Topics / Tags</th>
+                <th>Acceptance</th>
+                <th>Rewards</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: "center", padding: "20px", color: "#71717a" }}>
+                    No problems found matching search criteria.
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((prob, idx) => {
+                  const tagList = prob.tags || prob.topicSlugs || (Array.isArray(prob.topics) ? prob.topics.map(t => t.name || t) : []);
+                  const acceptancePct = prob.stats?.totalSubmissions > 0
+                    ? `${Math.round((prob.stats.acceptedSubmissions / prob.stats.totalSubmissions) * 100)}%`
+                    : (prob.acceptance || "N/A");
+
+                  return (
+                    <tr key={prob._id || prob.slug || idx}>
+                      <td>{prob.problemNumber || idx + 1}</td>
+                      <td>
+                        <b>{prob.title}</b>
+                        <div style={{ fontSize: "11px", color: "var(--muted)" }}>
+                          /{prob.slug}
+                        </div>
+                      </td>
+                      <td>
+                        <span
+                          className={`diff-pill diff-${(prob.difficulty || 'medium').toLowerCase()}`}
+                        >
+                          {prob.difficulty || 'Medium'}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+                          {tagList.map((t, tidx) => (
+                            <span
+                              key={tidx}
+                              style={{
+                                fontSize: "10px",
+                                background: "#f1f5f9",
+                                padding: "2px 6px",
+                                borderRadius: "3px"
+                              }}
+                            >
+                              {typeof t === 'string' ? t : t.name}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td>{acceptancePct}</td>
+                      <td>
+                        +{prob.rewards?.xp || 20} XP · +{prob.rewards?.rating || 15} PTS
+                      </td>
+                      <td>
+                        <button
+                          onClick={() => handleDelete(prob._id, prob.slug)}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: "#dc2626",
+                            cursor: "pointer"
+                          }}
+                          title="Delete Problem"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* Add Problem Modal */}

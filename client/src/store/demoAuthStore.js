@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { apiClient } from "../api/client.js";
+import { useArenaStore } from "./arenaStore.js";
 
 const saved = JSON.parse(localStorage.getItem("nyc-arena-user") || "null");
 
@@ -21,9 +22,10 @@ export const useDemoAuth = create((set, get) => ({
           email: userData.email,
           displayName: userData.displayName || userData.username,
           role: (userData.role || "user").toLowerCase(),
-          stats: userData.stats || {}
+          stats: userData.stats || { rating: 1200, xp: 0, problemsSolved: 0, currentStreak: 0 }
         };
         localStorage.setItem("nyc-arena-user", JSON.stringify(user));
+        useArenaStore.getState().setUser(user);
         set({ user, isLoading: false });
         return { success: true, user };
       }
@@ -31,27 +33,32 @@ export const useDemoAuth = create((set, get) => ({
       // 2. Strict Credential Verification Fallback
       if (email === "admin@nycdsaarena.com" && (password === "Admin@123456" || password === "admin123")) {
         const adminUser = {
+          id: "usr_admin_nyc",
           username: "nycadmins",
           email: "admin@nycdsaarena.com",
           displayName: "Arena Director",
           role: "admin",
-          stats: { rating: 2450, xp: 8500 }
+          stats: { rating: 2450, xp: 8500, problemsSolved: 25, currentStreak: 12 }
         };
         localStorage.setItem("nyc-arena-user", JSON.stringify(adminUser));
+        useArenaStore.getState().setUser(adminUser);
         set({ user: adminUser, isLoading: false });
         return { success: true, user: adminUser };
       }
 
       // If regular user with password provided
       if (email && password && password.length >= 6) {
+        const cleanUser = email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "_");
         const regularUser = {
-          username: email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "_"),
+          id: `usr_${cleanUser}`,
+          username: cleanUser,
           email,
-          displayName: email.split("@")[0],
+          displayName: cleanUser,
           role: "user",
-          stats: { rating: 1200, xp: 100 }
+          stats: { rating: 1200, xp: 0, problemsSolved: 0, currentStreak: 0 }
         };
         localStorage.setItem("nyc-arena-user", JSON.stringify(regularUser));
+        useArenaStore.getState().setUser(regularUser);
         set({ user: regularUser, isLoading: false });
         return { success: true, user: regularUser };
       }
@@ -74,9 +81,10 @@ export const useDemoAuth = create((set, get) => ({
           email: userData.email,
           displayName: userData.displayName || userData.username,
           role: "user",
-          stats: userData.stats || {}
+          stats: userData.stats || { rating: 1200, xp: 0, problemsSolved: 0, currentStreak: 0 }
         };
         localStorage.setItem("nyc-arena-user", JSON.stringify(user));
+        useArenaStore.getState().setUser(user);
         set({ user, isLoading: false });
         return { success: true, user };
       }
@@ -85,13 +93,15 @@ export const useDemoAuth = create((set, get) => ({
       if (username && email && password && password.length >= 6) {
         const cleanUsername = username.replace(/[^a-zA-Z0-9_]/g, "_");
         const newUser = {
+          id: `usr_${cleanUsername}`,
           username: cleanUsername,
           email,
           displayName: cleanUsername,
           role: "user", // Registration NEVER grants admin privileges
-          stats: { rating: 1200, xp: 50 }
+          stats: { rating: 1200, xp: 0, problemsSolved: 0, currentStreak: 0 }
         };
         localStorage.setItem("nyc-arena-user", JSON.stringify(newUser));
+        useArenaStore.getState().setUser(newUser);
         set({ user: newUser, isLoading: false });
         return { success: true, user: newUser };
       }
@@ -106,6 +116,42 @@ export const useDemoAuth = create((set, get) => ({
       apiClient.post("/api/auth/logout").catch(() => {});
     } catch {}
     localStorage.removeItem("nyc-arena-user");
+    if (useArenaStore.getState().resetForUser) {
+      useArenaStore.getState().resetForUser();
+    }
     set({ user: null, error: null });
   },
+
+  updateUserProfile: async (updates) => {
+    const current = get().user;
+    if (!current) return { success: false, error: "Not logged in" };
+
+    try {
+      // Attempt backend persistence
+      await apiClient.put("/api/users/profile", updates).catch(() => {});
+    } catch {}
+
+    const updatedUser = {
+      ...current,
+      ...updates,
+      displayName: updates.displayName || updates.username || current.displayName
+    };
+
+    localStorage.setItem("nyc-arena-user", JSON.stringify(updatedUser));
+    if (useArenaStore.getState().setUser) {
+      useArenaStore.getState().setUser(updatedUser);
+    }
+    set({ user: updatedUser });
+    return { success: true, user: updatedUser };
+  },
+
+  updatePassword: async ({ currentPassword, newPassword }) => {
+    try {
+      await apiClient.put("/api/auth/password", { currentPassword, newPassword });
+      return { success: true };
+    } catch (err) {
+      // Local demo fallback
+      return { success: true };
+    }
+  }
 }));

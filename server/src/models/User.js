@@ -105,5 +105,8 @@ userSchema.methods.toPublicProfile = function() {
 userSchema.index({ 'stats.rating': -1 });
 userSchema.index({ 'stats.xp': -1 });
 userSchema.index({ 'stats.problemsSolved': -1 });
+userSchema.index({ status: 1, 'stats.rating': -1 });
+userSchema.index({ status: 1, 'stats.xp': -1 });
+userSchema.index({ status: 1, 'stats.problemsSolved': -1 });
 
 export const User = mongoose.model('User', userSchema);

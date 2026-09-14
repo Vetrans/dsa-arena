@@ -14,6 +14,7 @@ import {
   Activity
 } from "lucide-react";
 import { useArenaStore } from "../store/arenaStore.js";
+import { PROBLEMS } from "../data/problemsData.js";
 import "./AchievementsPage.css";
 
 const ALL_ACHIEVEMENTS = [
@@ -141,8 +142,16 @@ export function AchievementsPage() {
 
   const getProgressVal = (type) => {
     if (type === "solved") return solvedProblemSlugs.length;
-    if (type === "medium_solved") return solvedProblemSlugs.length > 0 ? 1 : 0;
-    if (type === "hard_solved") return 0;
+    if (type === "medium_solved") {
+      return PROBLEMS.filter(
+        (p) => p.difficulty === "Medium" && solvedProblemSlugs.includes(p.slug)
+      ).length;
+    }
+    if (type === "hard_solved") {
+      return PROBLEMS.filter(
+        (p) => p.difficulty === "Hard" && solvedProblemSlugs.includes(p.slug)
+      ).length;
+    }
     if (type === "streak") return streakDays;
     if (type === "rating") return userRating;
     return 0;

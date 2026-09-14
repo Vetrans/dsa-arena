@@ -7,6 +7,8 @@ const router = express.Router();
 
 router.post('/', authenticate, submissionLimiter, submissionController.submitSolution);
 router.get('/history', authenticate, submissionController.getSubmissions);
+router.get('/:id/events', authenticate, submissionController.getSubmissionEvents);
 router.get('/:id', authenticate, submissionController.getSubmissionById);
 
 export default router;
+

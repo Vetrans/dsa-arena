@@ -414,106 +414,40 @@ export const seedDatabase = async () => {
     console.log('Seeding Achievements...');
     await Achievement.insertMany(ACHIEVEMENTS_DATA);
 
-    // 4. Seed Admin & Sample NYC Users
-    console.log('Seeding NYC Arena Users...');
-    const adminUser = await User.create({
-      username: 'nycadmins',
-      email: 'admin@nycdsaarena.com',
-      passwordHash: 'Admin@123456',
-      displayName: 'Arena Director',
-      bio: 'NYC DSA Arena Official Administrator & Problem Curator.',
-      role: 'ADMIN',
-      stats: {
-        rating: 2450,
-        xp: 8500,
-        level: 12,
-        rank: 'Diamond I',
-        problemsSolved: 142,
-        easySolved: 50,
-        mediumSolved: 70,
-        hardSolved: 22,
-        totalSubmissions: 190,
-        acceptedSubmissions: 175,
-        accuracy: 92,
-        currentStreak: 45,
-        longestStreak: 68
-      }
-    });
-
-    const student1 = await User.create({
-      username: 'nyu_coder',
-      email: 'alex@nyu.edu',
-      passwordHash: 'Student@123456',
-      displayName: 'Alex Chen (NYU)',
-      bio: 'CS @ NYU Courant. Prepping for NYC quant & tech interviews.',
-      role: 'USER',
-      stats: {
-        rating: 1820,
-        xp: 4200,
-        level: 8,
-        rank: 'Platinum II',
-        problemsSolved: 65,
-        easySolved: 30,
-        mediumSolved: 28,
-        hardSolved: 7,
-        totalSubmissions: 95,
-        acceptedSubmissions: 78,
-        accuracy: 82,
-        currentStreak: 14,
-        longestStreak: 21
-      }
-    });
-
-    const student2 = await User.create({
-      username: 'columbia_hacker',
-      email: 'maya@columbia.edu',
-      passwordHash: 'Student@123456',
-      displayName: 'Maya Patel (Columbia)',
-      bio: 'Columbia SEAS 26. Graph algorithms & DP enthusiast.',
-      role: 'USER',
-      stats: {
-        rating: 2150,
-        xp: 6800,
-        level: 10,
-        rank: 'Diamond III',
-        problemsSolved: 98,
-        easySolved: 35,
-        mediumSolved: 48,
-        hardSolved: 15,
-        totalSubmissions: 130,
-        acceptedSubmissions: 110,
-        accuracy: 85,
-        currentStreak: 24,
-        longestStreak: 30
-      }
-    });
-
-    const student3 = await User.create({
-      username: 'cuny_dev',
-      email: 'jordan@hunter.cuny.edu',
-      passwordHash: 'Student@123456',
-      displayName: 'Jordan Rivera (CUNY)',
-      bio: 'Hunter College CS. NYC Tech Fellow.',
-      role: 'USER',
-      stats: {
-        rating: 1420,
-        xp: 2100,
-        level: 5,
-        rank: 'Gold II',
-        problemsSolved: 32,
-        easySolved: 20,
-        mediumSolved: 11,
-        hardSolved: 1,
-        totalSubmissions: 50,
-        acceptedSubmissions: 38,
-        accuracy: 76,
-        currentStreak: 6,
-        longestStreak: 12
-      }
-    });
+    // 4. Seed Clean System Administrator only if none exists
+    console.log('Checking Admin Account...');
+    let adminUser = await User.findOne({ role: 'ADMIN' });
+    if (!adminUser) {
+      const adminEmail = process.env.INITIAL_ADMIN_EMAIL || 'admin@nycdsaarena.com';
+      const adminPass = process.env.INITIAL_ADMIN_PASSWORD || 'Admin@123456';
+      adminUser = await User.create({
+        username: 'nycadmins',
+        email: adminEmail,
+        passwordHash: adminPass,
+        displayName: 'Arena Director',
+        bio: 'NYC DSA Arena Official System Administrator.',
+        role: 'ADMIN',
+        stats: {
+          rating: 1500,
+          xp: 0,
+          level: 1,
+          rank: 'Gold I',
+          problemsSolved: 0,
+          easySolved: 0,
+          mediumSolved: 0,
+          hardSolved: 0,
+          totalSubmissions: 0,
+          acceptedSubmissions: 0,
+          accuracy: 0,
+          currentStreak: 0,
+          longestStreak: 0
+        }
+      });
+      console.log(`Created Initial Clean Admin Account (${adminEmail})`);
+    }
 
     // 5. Seed Problems
-    console.log('Seeding Problems...');
+    console.log('Seeding Problems Bank...');
     const allProblems = [...PROBLEMS_DATA, ...EXTENDED_PROBLEMS];
     const problemsToInsert = allProblems.map(p => {
       const topicIds = p.topicSlugs.map(slug => topicMap[slug]).filter(Boolean);
@@ -534,43 +468,26 @@ export const seedDatabase = async () => {
       }
     }
 
-    // 6. Seed Daily Challenge
-    console.log('Seeding Daily Challenge...');
+    // 6. Dynamic Daily Challenge Initialization
+    console.log('Initializing Daily Challenge...');
     const today = new Date().toISOString().split('T')[0];
+    const randomProblem = createdProblems[Math.floor(Math.random() * createdProblems.length)];
     await DailyChallenge.create({
       date: today,
-      problemId: createdProblems[0]._id,
+      problemId: randomProblem._id,
       bonusXp: 25,
       bonusRating: 15,
-      completedBy: [student1._id, student2._id]
+      completedBy: []
     });
 
-    // 7. Seed Sample Discussions
-    console.log('Seeding Community Discussions...');
-    const sampleComment = await Comment.create({
-      problemId: createdProblems[0]._id,
-      userId: student2._id,
-      content: 'Why is a HashMap preferred here over sorting the array first and using two pointers?',
-      upvotes: 8,
-      upvotedBy: [student1._id, student3._id]
-    });
-
-    await Comment.create({
-      problemId: createdProblems[0]._id,
-      userId: student1._id,
-      parentId: sampleComment._id,
-      content: 'Sorting takes O(N log N) time, whereas a HashMap provides O(N) linear time by trading O(N) auxiliary space. Also, sorting rearranges indices, requiring us to track original positions.',
-      upvotes: 5,
-      upvotedBy: [student2._id]
-    });
-
-    console.log('Database seeded successfully! 🎉');
+    console.log('System bootstrap completed successfully! 🎉');
     console.log(`- Topics: ${createdTopics.length}`);
     console.log(`- Problems: ${createdProblems.length}`);
     console.log(`- Achievements: ${ACHIEVEMENTS_DATA.length}`);
-    console.log(`- Users: 4 (Admin: admin@nycdsaarena.com / Admin@123456)`);
+    console.log(`- Dynamic Users: 0 staged fake users. Ready for live contenders!`);
   } catch (error) {
-    console.error('Error seeding database:', error);
+    console.error('Error bootstrapping system:', error);
+
   } finally {
     await mongoose.disconnect();
     console.log('Disconnected from MongoDB.');

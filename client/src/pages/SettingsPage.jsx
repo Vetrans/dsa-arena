@@ -15,32 +15,80 @@ import "./SettingsPage.css";
 const AVATARS = ["NYC", "DEV", "PRO", "ALGO", "SYS", "TITAN", "ACE", "CHAMP"];
 
 export function SettingsPage() {
-  const { user } = useDemoAuth();
+  const { user, updateUserProfile, updatePassword } = useDemoAuth();
 
   const [activeTab, setActiveTab] = useState("profile"); // 'profile' | 'editor' | 'security'
-  const [avatar, setAvatar] = useState("NYC");
+  const [avatar, setAvatar] = useState(user?.avatar || "NYC");
   const [username, setUsername] = useState(user?.username || "arena_engineer");
   const [email, setEmail] = useState(user?.email || "engineer@nycdsa.com");
   const [bio, setBio] = useState(
-    "Software Engineer practicing daily data structures and competitive algorithmic duels."
+    user?.bio || "Software Engineer practicing daily data structures and competitive algorithmic duels."
   );
-  const [college, setCollege] = useState("Not Your College (NYC)");
-  const [country, setCountry] = useState("United States");
-  const [github, setGithub] = useState("github.com/engineer");
-  const [linkedin, setLinkedin] = useState("linkedin.com/in/engineer");
+  const [college, setCollege] = useState(user?.college || "Not Your College");
+  const [country, setCountry] = useState(user?.country || "United States");
+  const [github, setGithub] = useState(user?.github || "github.com/engineer");
+  const [linkedin, setLinkedin] = useState(user?.linkedin || "linkedin.com/in/engineer");
 
   // Editor Preferences
-  const [defaultLanguage, setDefaultLanguage] = useState("javascript");
-  const [editorTheme, setEditorTheme] = useState("vs-dark");
-  const [tabSize, setTabSize] = useState(2);
-  const [keybindings, setKeybindings] = useState("standard");
+  const savedEditorPrefs = JSON.parse(localStorage.getItem("nyc_editor_prefs") || "{}");
+  const [defaultLanguage, setDefaultLanguage] = useState(savedEditorPrefs.defaultLanguage || "javascript");
+  const [editorTheme, setEditorTheme] = useState(savedEditorPrefs.editorTheme || "vs-dark");
+  const [tabSize, setTabSize] = useState(savedEditorPrefs.tabSize || 2);
+  const [keybindings, setKeybindings] = useState(savedEditorPrefs.keybindings || "standard");
+
+  // Password fields
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
+    setIsSaving(true);
+    setPasswordError("");
+
+    try {
+      if (activeTab === "profile") {
+        await updateUserProfile({
+          username,
+          email,
+          avatar,
+          bio,
+          college,
+          country,
+          github,
+          linkedin
+        });
+      } else if (activeTab === "editor") {
+        const editorPrefs = { defaultLanguage, editorTheme, tabSize, keybindings };
+        localStorage.setItem("nyc_editor_prefs", JSON.stringify(editorPrefs));
+      } else if (activeTab === "security") {
+        if (newPassword && newPassword !== confirmPassword) {
+          setPasswordError("New passwords do not match.");
+          setIsSaving(false);
+          return;
+        }
+        if (newPassword && newPassword.length < 6) {
+          setPasswordError("Password must be at least 6 characters.");
+          setIsSaving(false);
+          return;
+        }
+        await updatePassword({ currentPassword, newPassword });
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      }
+
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -237,18 +285,38 @@ export function SettingsPage() {
                   Update your authentication credentials and session tokens.
                 </p>
 
+                {passwordError && (
+                  <div style={{ color: "#dc2626", fontSize: "12px", fontWeight: 800, marginBottom: "12px" }}>
+                    {passwordError}
+                  </div>
+                )}
                 <div className="form-field">
                   <label>Current Password:</label>
-                  <input type="password" placeholder="••••••••" />
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                  />
                 </div>
                 <div className="form-grid-2">
                   <div className="form-field">
                     <label>New Password:</label>
-                    <input type="password" placeholder="••••••••" />
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                    />
                   </div>
                   <div className="form-field">
                     <label>Confirm New Password:</label>
-                    <input type="password" placeholder="••••••••" />
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
                   </div>
                 </div>
               </div>
