@@ -12,13 +12,15 @@ import {
   XPTransaction,
   Streak,
   Comment,
-  DailyChallenge
+  DailyChallenge,
+  ProblemTestCase
 } from '../models/index.js';
 import { EXTENDED_PROBLEMS } from './problemsBank.js';
+import { PROBLEMS_19_200 } from './problems19_200.js';
 
 dotenv.config();
 
-const TOPICS_DATA = [
+export const TOPICS_DATA = [
   { name: 'Arrays', slug: 'arrays', icon: '📊', description: 'Contiguous memory collections and index operations.', order: 1 },
   { name: 'Strings', slug: 'strings', icon: '🔤', description: 'Text manipulation, parsing, and anagram techniques.', order: 2 },
   { name: 'Two Pointers', slug: 'two-pointers', icon: '👉', description: 'Dual index traversal for sorted sequences.', order: 3 },
@@ -36,7 +38,11 @@ const TOPICS_DATA = [
   { name: 'Greedy', slug: 'greedy', icon: '🤑', description: 'Locally optimal choices yielding global optimums.', order: 15 },
   { name: 'Binary Search', slug: 'binary-search', icon: '🔍', description: 'Logarithmic search space halving.', order: 16 },
   { name: 'Bit Manipulation', slug: 'bit-manipulation', icon: '🔢', description: 'Binary XOR, bitmasking, and bitwise tricks.', order: 17 },
-  { name: 'Prefix Sum', slug: 'prefix-sum', icon: '➕', description: 'Cumulative sum arrays for O(1) range queries.', order: 18 }
+  { name: 'Prefix Sum', slug: 'prefix-sum', icon: '➕', description: 'Cumulative sum arrays for O(1) range queries.', order: 18 },
+  { name: 'Math', slug: 'math', icon: '➗', description: 'Number theory, modular arithmetic, and combinatorial math.', order: 19 },
+  { name: 'Matrix', slug: 'matrix', icon: '🔲', description: '2D grid traversals, coordinate geometry, and transformations.', order: 20 },
+  { name: 'Trie', slug: 'trie', icon: '🌲', description: 'Prefix trees for efficient string retrieval and autocomplete.', order: 21 },
+  { name: 'Sorting', slug: 'sorting', icon: '📶', description: 'QuickSort, MergeSort, custom comparators, and ordering.', order: 22 }
 ];
 
 const ACHIEVEMENTS_DATA = [
@@ -60,7 +66,7 @@ const ACHIEVEMENTS_DATA = [
   { key: 'RATING_2000', name: 'Diamond Mastermind', description: 'Reach a competitive rating of 2,000+ (Diamond Rank).', category: 'COMPETITIVE', icon: '💎', condition: { type: 'rating_reached', threshold: 2000 }, xpReward: 500, rarity: 'EPIC', order: 11 }
 ];
 
-const PROBLEMS_DATA = [
+export const PROBLEMS_DATA = [
   {
     problemNumber: 1,
     title: 'Two Sum',
@@ -399,7 +405,8 @@ export const seedDatabase = async () => {
       XPTransaction.deleteMany({}),
       Streak.deleteMany({}),
       Comment.deleteMany({}),
-      DailyChallenge.deleteMany({})
+      DailyChallenge.deleteMany({}),
+      ProblemTestCase.deleteMany({})
     ]);
 
     // 2. Seed Topics
@@ -448,7 +455,7 @@ export const seedDatabase = async () => {
 
     // 5. Seed Problems
     console.log('Seeding Problems Bank...');
-    const allProblems = [...PROBLEMS_DATA, ...EXTENDED_PROBLEMS];
+    const allProblems = [...PROBLEMS_DATA, ...EXTENDED_PROBLEMS, ...PROBLEMS_19_200];
     const problemsToInsert = allProblems.map(p => {
       const topicIds = p.topicSlugs.map(slug => topicMap[slug]).filter(Boolean);
       return {
@@ -460,6 +467,23 @@ export const seedDatabase = async () => {
     });
 
     const createdProblems = await Problem.insertMany(problemsToInsert);
+
+    // Securely partition hidden test cases into ProblemTestCase collection
+    const testCasesToInsert = [];
+    for (const p of createdProblems) {
+      if (p.testCases && p.testCases.length > 0) {
+        const hiddenCases = p.testCases.filter(tc => tc.isHidden);
+        if (hiddenCases.length > 0) {
+          testCasesToInsert.push({
+            problemId: p._id,
+            testCases: hiddenCases
+          });
+        }
+      }
+    }
+    if (testCasesToInsert.length > 0) {
+      await ProblemTestCase.insertMany(testCasesToInsert);
+    }
 
     // Update topic problem counts
     for (const p of createdProblems) {

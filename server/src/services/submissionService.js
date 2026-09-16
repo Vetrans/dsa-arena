@@ -87,9 +87,11 @@ export const processSubmissionExecution = async ({
 
   if (!problem) throw new Error(`Problem not found: ${problemId}`);
 
-  // Combine public test cases and hidden test cases
-  const publicTestCases = problem.testCases || [];
-  const hiddenTestCases = hiddenTestCasesDoc?.testCases || [];
+  // Combine public test cases and hidden test cases safely
+  const publicTestCases = (problem.testCases || []).filter(tc => !tc.isHidden);
+  const hiddenTestCases = hiddenTestCasesDoc?.testCases?.length > 0 
+    ? hiddenTestCasesDoc.testCases 
+    : (problem.testCases || []).filter(tc => tc.isHidden);
   const allTestCases = [...publicTestCases, ...hiddenTestCases];
 
   // Transition to RUNNING

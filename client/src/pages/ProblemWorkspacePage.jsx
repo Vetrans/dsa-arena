@@ -28,6 +28,7 @@ import { PROBLEMS } from "../data/problemsData.js";
 import { executeProblemTests } from "../services/sandboxJudge.js";
 import { useArenaStore } from "../store/arenaStore.js";
 import { submissionsApi } from "../api/submissions.js";
+import { problemsApi } from "../api/problems.js";
 import "./ProblemWorkspacePage.css";
 
 const LANGUAGES = [
@@ -44,12 +45,53 @@ export function ProblemWorkspacePage() {
   const navigate = useNavigate();
 
   // Find problem or fallback to first
-  const problemIndex = PROBLEMS.findIndex((p) => p.slug === slug);
-  const problem = problemIndex !== -1 ? PROBLEMS[problemIndex] : PROBLEMS[0];
+  const staticProblem = PROBLEMS.find((p) => p.slug === slug) || PROBLEMS[0];
+  const [problem, setProblem] = useState(staticProblem);
+  const [allProblemsList, setAllProblemsList] = useState(PROBLEMS);
 
-  const prevProblem = problemIndex > 0 ? PROBLEMS[problemIndex - 1] : null;
+  // Fetch dynamic problem and problem list from API
+  useEffect(() => {
+    let isCurrent = true;
+    const local = PROBLEMS.find((p) => p.slug === slug);
+    if (local) {
+      setProblem(local);
+    }
+
+    problemsApi.getProblemBySlug(slug)
+      .then((res) => {
+        if (!isCurrent) return;
+        const apiData = res?.data || res;
+        if (apiData && (apiData._id || apiData.slug)) {
+          const testCases = apiData.sampleTestCases || apiData.testCases || local?.testCases || [];
+          setProblem((prev) => ({
+            ...prev,
+            ...apiData,
+            testCases,
+            starterCode: apiData.starterCode || prev.starterCode || {}
+          }));
+        }
+      })
+      .catch(() => {});
+
+    problemsApi.getProblems({ limit: 250 })
+      .then((res) => {
+        if (!isCurrent) return;
+        const list = res?.data?.problems || res?.problems || res?.data;
+        if (Array.isArray(list) && list.length > 0) {
+          setAllProblemsList(list);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [slug]);
+
+  const problemIndex = allProblemsList.findIndex((p) => p.slug === slug);
+  const prevProblem = problemIndex > 0 ? allProblemsList[problemIndex - 1] : null;
   const nextProblem =
-    problemIndex < PROBLEMS.length - 1 ? PROBLEMS[problemIndex + 1] : null;
+    problemIndex !== -1 && problemIndex < allProblemsList.length - 1 ? allProblemsList[problemIndex + 1] : null;
 
   // Arena Store
   const {
@@ -178,7 +220,53 @@ export function ProblemWorkspacePage() {
     setExecutionResult(null);
 
     try {
-      const res = await executeProblemTests({
+      const pId = problem._id || problem.id;
+      let finalResult = null;
+
+      // 1. If problem is registered with MongoDB, submit to async execution engine
+      if (pId) {
+        try {
+          const subRes = await submissionsApi.submitCode({
+            problemId: pId,
+            language,
+            code
+          });
+          const subData = subRes?.data || subRes;
+          const submissionId = subData?.submissionId || subData?._id;
+
+          if (submissionId) {
+            // Poll for worker evaluation settlement
+            const settled = await submissionsApi.pollSubmission(submissionId, 25, 400);
+            if (settled && settled.status && !['QUEUED', 'RUNNING'].includes(settled.status)) {
+              finalResult = {
+                verdict: settled.status,
+                verdictLabel: settled.status.replace(/_/g, " "),
+                errorMessage: settled.errorMessage,
+                passedTestCases: settled.passedTestCases,
+                totalTestCases: settled.totalTestCases,
+                runtime: settled.runtime || 35,
+                memory: +(settled.memory ? (settled.memory / 1024).toFixed(1) : 42.5),
+                testResults: (settled.testResults || []).map((tr, idx) => ({
+                  index: idx + 1,
+                  input: tr.input,
+                  expected: tr.expectedOutput,
+                  actual: tr.actualOutput,
+                  passed: tr.passed,
+                  error: tr.error,
+                  runtime: tr.runtime,
+                  logs: [],
+                  isHidden: tr.isHidden
+                }))
+              };
+            }
+          }
+        } catch (backendErr) {
+          // If unauthenticated or offline, fallback to sandbox judge
+        }
+      }
+
+      // 2. Fallback to sandbox judge if not resolved by backend
+      const res = finalResult || await executeProblemTests({
         code,
         language,
         testCases: problem.testCases,
@@ -199,14 +287,6 @@ export function ProblemWorkspacePage() {
         xpReward: problem.rewards?.xp || 25,
         ratingReward: problem.rewards?.rating || 15
       });
-
-      if (problem._id || problem.id) {
-        submissionsApi.submitCode({
-          problemId: problem._id || problem.id,
-          language,
-          code
-        }).catch(() => {});
-      }
 
       if (res.verdict === "ACCEPTED") {
         setShowCelebration(true);
@@ -327,7 +407,7 @@ export function ProblemWorkspacePage() {
               className={`dossier-tab ${activeTab === "hints" ? "active" : ""}`}
               onClick={() => setActiveTab("hints")}
             >
-              <Lightbulb size={15} /> Hints ({problem.hints.length})
+              <Lightbulb size={15} /> Hints ({problem.hints?.length || 0})
             </button>
             <button
               className={`dossier-tab ${activeTab === "editorial" ? "active" : ""}`}
@@ -354,7 +434,7 @@ export function ProblemWorkspacePage() {
               <div className="tab-pane-description">
                 <div className="problem-meta-bar">
                   <span className="meta-tag">
-                    Acceptance: <b>{problem.acceptance}</b>
+                    Acceptance: <b>{problem.acceptance || "52.4%"}</b>
                   </span>
                   <span className="meta-tag">
                     XP Reward: <b>+{problem.rewards?.xp || 20} XP</b>
@@ -365,14 +445,14 @@ export function ProblemWorkspacePage() {
                 </div>
 
                 <div className="description-text">
-                  {problem.description.split("\n\n").map((para, i) => (
+                  {(problem.description || "").split("\n\n").map((para, i) => (
                     <p key={i}>{para}</p>
                   ))}
                 </div>
 
                 <div className="examples-section">
                   <h3>Examples</h3>
-                  {problem.examples.map((ex, i) => (
+                  {(problem.examples || []).map((ex, i) => (
                     <div className="example-card" key={i}>
                       <div className="example-header">Example {i + 1}</div>
                       <div className="example-row">
@@ -396,7 +476,7 @@ export function ProblemWorkspacePage() {
                 <div className="constraints-section">
                   <h3>Constraints</h3>
                   <ul>
-                    {problem.constraints.map((c, i) => (
+                    {(problem.constraints || []).map((c, i) => (
                       <li key={i}>
                         <code>{c}</code>
                       </li>
@@ -407,9 +487,9 @@ export function ProblemWorkspacePage() {
                 <div className="tags-section">
                   <h3>Topics & Tags</h3>
                   <div className="tag-pills">
-                    {problem.tags.map((t, i) => (
+                    {(problem.tags || problem.topics || []).map((t, i) => (
                       <span className="tag-pill" key={i}>
-                        {t}
+                        {typeof t === "string" ? t : (t.name || t.slug)}
                       </span>
                     ))}
                   </div>
@@ -422,7 +502,7 @@ export function ProblemWorkspacePage() {
                 <p className="hints-intro">
                   Need a nudge in the right direction? Unlock hints progressively.
                 </p>
-                {problem.hints.map((hint) => {
+                {(problem.hints || []).map((hint) => {
                   const isUnlocked = problemHintsUnlocked.includes(hint.order);
                   return (
                     <div className="hint-card" key={hint.order}>
@@ -454,23 +534,23 @@ export function ProblemWorkspacePage() {
               <div className="tab-pane-editorial">
                 <div className="editorial-card">
                   <div className="editorial-badge">OFFICIAL EDITORIAL</div>
-                  <h2>{problem.editorial.approach}</h2>
-                  <p className="editorial-intuition">{problem.editorial.intuition}</p>
+                  <h2>{problem.editorial?.approach || "Algorithmic Approach"}</h2>
+                  <p className="editorial-intuition">{problem.editorial?.intuition || "Detailed walkthrough and mathematical intuition for this problem."}</p>
 
                   <div className="complexity-grid">
                     <div className="comp-item">
                       <span className="comp-lbl">Time Complexity</span>
-                      <b>{problem.editorial.timeComplexity}</b>
+                      <b>{problem.editorial?.timeComplexity || problem.editorial?.complexity?.time || "O(N)"}</b>
                     </div>
                     <div className="comp-item">
                       <span className="comp-lbl">Space Complexity</span>
-                      <b>{problem.editorial.spaceComplexity}</b>
+                      <b>{problem.editorial?.spaceComplexity || problem.editorial?.complexity?.space || "O(1)"}</b>
                     </div>
                   </div>
 
                   <h3>Reference Implementation (JavaScript)</h3>
                   <pre className="editorial-code">
-                    <code>{problem.editorial.solutionCode}</code>
+                    <code>{problem.editorial?.solutionCode || "// Official reference solution provided above"}</code>
                   </pre>
                 </div>
               </div>
@@ -790,7 +870,7 @@ export function ProblemWorkspacePage() {
 
             {bugSuccess ? (
               <div style={{ textAlign: "center", padding: "24px 0" }}>
-                <div style={{ fontSize: "32px", marginBottom: "8px" }}>✅</div>
+                <CheckCircle2 size={40} color="#22c55e" style={{ margin: "0 auto 8px" }} />
                 <h3 style={{ margin: "0 0 6px" }}>Report Submitted!</h3>
                 <p style={{ color: "var(--muted)", fontSize: "13px" }}>
                   Thank you! Our engineering team has logged this issue for review.

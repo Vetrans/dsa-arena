@@ -64,6 +64,14 @@ const problemSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Topic'
   }],
+  topicSlugs: [{
+    type: String,
+    trim: true
+  }],
+  acceptance: {
+    type: String,
+    default: '52.4%'
+  },
   tags: [{
     type: String,
     trim: true
@@ -85,6 +93,9 @@ const problemSchema = new mongoose.Schema({
     approach: { type: String, default: '' },
     intuition: { type: String, default: '' },
     algorithm: { type: String, default: '' },
+    timeComplexity: { type: String, default: '' },
+    spaceComplexity: { type: String, default: '' },
+    solutionCode: { type: String, default: '' },
     complexity: {
       time: { type: String, default: 'O(N)' },
       space: { type: String, default: 'O(1)' }

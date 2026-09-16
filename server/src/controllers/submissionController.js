@@ -1,6 +1,34 @@
 import * as submissionService from '../services/submissionService.js';
+import { evaluateSubmission } from '../services/judgeService.js';
+import { Problem } from '../models/index.js';
 import { success, paginated } from '../utils/apiResponse.js';
 import { createDuplicateClient, redisAvailable } from '../config/redis.js';
+
+export const runCode = async (req, res, next) => {
+  try {
+    const { problemId, language = 'javascript', code, testCases, customInput } = req.body;
+    let testsToRun = testCases;
+    if ((!testsToRun || testsToRun.length === 0) && problemId) {
+      const problem = await Problem.findById(problemId);
+      testsToRun = problem ? (problem.testCases || []).filter(tc => !tc.isHidden) : [];
+    }
+    if (customInput) {
+      testsToRun = [{ input: customInput, expected: 'N/A', isHidden: false }];
+    }
+
+    const evalResult = await evaluateSubmission({
+      code,
+      language,
+      testCases: testsToRun || [],
+      timeLimit: 3000,
+      memoryLimit: 256
+    });
+
+    return success(res, evalResult);
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const submitSolution = async (req, res, next) => {
   try {

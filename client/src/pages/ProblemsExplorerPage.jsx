@@ -32,7 +32,7 @@ export function ProblemsExplorerPage() {
   useEffect(() => {
     async function loadProblems() {
       try {
-        const res = await problemsApi.getProblems({ limit: 100 });
+        const res = await problemsApi.getProblems({ limit: 250 });
         if (res?.data && res.data.length > 0) {
           setAllProblems(res.data);
         }
@@ -61,9 +61,13 @@ export function ProblemsExplorerPage() {
         prob.difficulty.toLowerCase() === selectedDifficulty.toLowerCase();
 
       // Topic
+      const probTopicSlugs = (prob.topicSlugs && prob.topicSlugs.length > 0)
+        ? prob.topicSlugs
+        : (prob.topics || []).map((t) => (typeof t === "string" ? t.toLowerCase() : t.slug)).filter(Boolean);
+
       const matchesTopic =
         selectedTopic === "all" ||
-        prob.topicSlugs.includes(selectedTopic.toLowerCase());
+        probTopicSlugs.some((s) => s.toLowerCase() === selectedTopic.toLowerCase());
 
       // Status
       const isSolved = solvedProblemSlugs.includes(prob.slug);
@@ -250,18 +254,37 @@ export function ProblemsExplorerPage() {
 
       {/* Topic Chips Carousel */}
       <section className="topics-carousel">
-        {TOPICS.map((topic) => (
-          <button
-            key={topic.slug}
-            className={`topic-chip ${
-              selectedTopic === topic.slug ? "active" : ""
-            }`}
-            onClick={() => setSelectedTopic(topic.slug)}
-          >
-            <span>{topic.name}</span>
-            <span className="topic-count">{topic.count}</span>
-          </button>
-        ))}
+        {TOPICS.map((topic) => {
+          const count =
+            topic.slug === "all"
+              ? allProblems.length
+              : allProblems.filter((p) => {
+                  const sList =
+                    p.topicSlugs ||
+                    (p.topics || []).map((t) =>
+                      typeof t === "string" ? t.toLowerCase() : t.slug
+                    );
+                  return (
+                    sList &&
+                    sList.some(
+                      (s) => s && s.toLowerCase() === topic.slug.toLowerCase()
+                    )
+                  );
+                }).length;
+
+          return (
+            <button
+              key={topic.slug}
+              className={`topic-chip ${
+                selectedTopic === topic.slug ? "active" : ""
+              }`}
+              onClick={() => setSelectedTopic(topic.slug)}
+            >
+              <span>{topic.name}</span>
+              <span className="topic-count">{count || topic.count}</span>
+            </button>
+          );
+        })}
       </section>
 
       {/* Problems Table */}
@@ -290,6 +313,7 @@ export function ProblemsExplorerPage() {
                 const isSolved = solvedProblemSlugs.includes(prob.slug);
                 const isAttempted =
                   attemptedProblemSlugs.includes(prob.slug) && !isSolved;
+                const displayTopics = prob.topics || prob.tags || [];
 
                 return (
                   <tr key={prob.slug}>
@@ -312,14 +336,14 @@ export function ProblemsExplorerPage() {
                     </td>
                     <td className="topics-cell">
                       <div className="cell-tags">
-                        {prob.topics.map((t, idx) => (
+                        {displayTopics.map((t, idx) => (
                           <span className="cell-tag" key={idx}>
-                            {t}
+                            {typeof t === "string" ? t : (t.name || t.slug)}
                           </span>
                         ))}
                       </div>
                     </td>
-                    <td className="acc-cell">{prob.acceptance}</td>
+                    <td className="acc-cell">{prob.acceptance || "52.4%"}</td>
                     <td className="diff-cell">
                       <span
                         className={`diff-pill diff-${prob.difficulty.toLowerCase()}`}

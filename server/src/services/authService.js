@@ -17,9 +17,10 @@ async function issueSession(user, metadata) {
 export const register = async ({ username, email, password, displayName }, metadata) => {
   const normalizedEmail = email.toLowerCase().trim();
   const normalizedUsername = username.trim();
+  const resolvedDisplayName = (displayName && displayName.trim()) || normalizedUsername;
   const existingUser = await User.findOne({ $or: [{ email: normalizedEmail }, { username: normalizedUsername }] }).lean();
   if (existingUser) throw new AppError('CONFLICT', existingUser.email === normalizedEmail ? 'Email already in use' : 'Username already taken', 409);
-  const user = await User.create({ username: normalizedUsername, email: normalizedEmail, passwordHash: password, displayName: displayName.trim() });
+  const user = await User.create({ username: normalizedUsername, email: normalizedEmail, passwordHash: password, displayName: resolvedDisplayName });
   return issueSession(user, metadata);
 };
 

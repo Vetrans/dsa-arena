@@ -58,10 +58,15 @@ export const adminApi = {
   updateUserRole: (id, role) => client.put(`/admin/users/${id}/role`, { role }),
   toggleUserSuspend: (id, data) =>
     client.put(`/admin/users/${id}/suspend`, data),
+  grantPoints: (id, data) => client.post(`/admin/users/${id}/points`, data),
+  warnUser: (id, data) => client.post(`/admin/users/${id}/warn`, data),
+  clearWarnings: (id) => client.post(`/admin/users/${id}/clear-warnings`),
+  deleteUser: (id) => client.delete(`/admin/users/${id}`),
   getFeedback: (params) => client.get("/admin/feedback", { params }),
   updateFeedbackStatus: (id, data) => client.put(`/admin/feedback/${id}`, data),
   createProblem: (data) => client.post("/problems", data),
   updateProblem: (id, data) => client.put(`/problems/${id}`, data),
   deleteProblem: (id) => client.delete(`/problems/${id}`),
 };
+
 

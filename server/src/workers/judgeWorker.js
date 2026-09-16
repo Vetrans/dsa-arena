@@ -1,11 +1,16 @@
 import { Worker } from 'bullmq';
 import { env } from '../config/env.js';
+import { redisAvailable } from '../config/redis.js';
 import { processSubmissionExecution } from '../services/submissionService.js';
 import { logger } from '../config/logger.js';
 
 let judgeWorker = null;
 
 export const startJudgeWorker = (concurrency = 5) => {
+  if (!redisAvailable) {
+    logger.info('Redis not available; submissions will be processed directly in-process');
+    return null;
+  }
   try {
     const redisUrl = new URL(env.REDIS_URL);
     const connection = {

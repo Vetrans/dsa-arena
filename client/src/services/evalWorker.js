@@ -21,15 +21,57 @@ self.onmessage = function (e) {
   };
 
   const parseInputArgs = (inputStr) => {
+    if (inputStr === undefined || inputStr === null) return [];
+    const str = String(inputStr).trim();
+    if (!str) return [];
+
     try {
-      return JSON.parse(`[${inputStr}]`);
+      return JSON.parse(`[${str}]`);
     } catch {
-      return [inputStr];
+      /* continue */
+      void 0;
     }
+
+    try {
+      const cleaned = str.replace(/\b[a-zA-Z_][a-zA-Z0-9_]*\s*=\s*/g, '');
+      return JSON.parse(`[${cleaned}]`);
+    } catch {
+      /* continue */
+      void 0;
+    }
+
+    try {
+      const withQuotes = str.replace(/'/g, '"').replace(/\b[a-zA-Z_][a-zA-Z0-9_]*\s*=\s*/g, '');
+      return JSON.parse(`[${withQuotes}]`);
+    } catch {
+      /* continue */
+      void 0;
+    }
+
+    try {
+      const fn = new Function(`return [${str}];`);
+      return fn();
+    } catch {
+      /* continue */
+      void 0;
+    }
+
+    return [str];
   };
 
   try {
     const args = parseInputArgs(input);
+
+    const cleanCode = code.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
+    const regex = /(?:function\s+([a-zA-Z0-9_$]+)|(?:var|let|const)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:function|\([^)]*\)\s*=>|[a-zA-Z0-9_$]+\s*=>)|class\s+([a-zA-Z0-9_$]+))/g;
+    const candidateNames = [];
+    let m;
+    while ((m = regex.exec(cleanCode)) !== null) {
+      const name = m[1] || m[2] || m[3];
+      if (name && !candidateNames.includes(name) && name !== 'ListNode' && name !== 'TreeNode') {
+        candidateNames.push(name);
+      }
+    }
 
     const wrappedFn = new Function(
       "customConsole",
@@ -37,28 +79,65 @@ self.onmessage = function (e) {
       const console = {
         log: (...args) => customConsole.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '))
       };
+
+      function ListNode(val, next) {
+        this.val = (val===undefined ? 0 : val);
+        this.next = (next===undefined ? null : next);
+      }
+
+      function TreeNode(val, left, right) {
+        this.val = (val===undefined ? 0 : val);
+        this.left = (left===undefined ? null : left);
+        this.right = (right===undefined ? null : right);
+      }
+
+      function serializeResult(val) {
+        if (val && typeof val === 'object' && val.val !== undefined && 'next' in val) {
+          const arr = [];
+          let curr = val;
+          while (curr) {
+            arr.push(curr.val);
+            curr = curr.next;
+          }
+          return arr;
+        }
+        return val;
+      }
       
       ${code}
 
-      // Automatically identify and invoke the primary algorithm entry point
-      if (typeof twoSum === 'function') return twoSum(...arguments);
-      if (typeof isValid === 'function') return isValid(...arguments);
-      if (typeof maxSubArray === 'function') return maxSubArray(...arguments);
-      if (typeof merge === 'function') return merge(...arguments);
-      if (typeof lengthOfLongestSubstring === 'function') return lengthOfLongestSubstring(...arguments);
-      if (typeof reverseList === 'function') return reverseList(...arguments);
-      if (typeof climbStairs === 'function') return climbStairs(...arguments);
-      if (typeof coinChange === 'function') return coinChange(...arguments);
-      if (typeof ladderLength === 'function') return ladderLength(...arguments);
-      if (typeof solution === 'function') return solution(...arguments);
-
-      const match = ${JSON.stringify(code)}.match(/(?:function\\s+([a-zA-Z0-9_$]+)|var\\s+([a-zA-Z0-9_$]+)\\s*=\\s*function|const\\s+([a-zA-Z0-9_$]+)\\s*=\\s*\\()/);
-      const fnName = match ? (match[1] || match[2] || match[3]) : null;
-      if (fnName && typeof eval(fnName) === 'function') {
-        return eval(fnName)(...arguments);
+      // 1. Check for class Solution instance methods
+      if (typeof Solution === 'function') {
+        try {
+          const inst = new Solution();
+          const proto = Object.getPrototypeOf(inst);
+          const methods = Object.getOwnPropertyNames(proto).filter(m => m !== 'constructor' && typeof inst[m] === 'function');
+          if (methods.length > 0) {
+            return serializeResult(inst[methods[0]](...arguments));
+          }
+        } catch(e) {}
       }
 
-      throw new Error("Could not find a valid solution function to execute. Please check your function name.");
+      // 2. Discovered candidate function names
+      const candidates = ${JSON.stringify(candidateNames)};
+      for (const name of candidates) {
+        try {
+          const fn = eval(name);
+          if (typeof fn === 'function') {
+            return serializeResult(fn(...arguments));
+          }
+        } catch(e) {}
+      }
+
+      // 3. Fallback generic algorithm names
+      const fallbackNames = ['solution', 'solve', 'twoSum', 'isValid', 'climbStairs', 'coinChange', 'reverseList', 'maxSubArray', 'lengthOfLongestSubstring', 'trap', 'exist'];
+      for (const fn of fallbackNames) {
+        try {
+          if (typeof eval(fn) === 'function') return serializeResult(eval(fn)(...arguments));
+        } catch(e) {}
+      }
+
+      throw new Error("Could not find a valid solution function to execute. Please ensure your solution function is defined.");
     `
     );
 
@@ -71,8 +150,8 @@ self.onmessage = function (e) {
       result,
       outputStr: normalizeValue(result),
       logs,
-      runtime: duration + Math.floor(Math.random() * 20 + 10),
-      memory: +(38.2 + Math.random() * 5.4).toFixed(1)
+      runtime: duration,
+      memory: 38.5
     });
   } catch (err) {
     self.postMessage({

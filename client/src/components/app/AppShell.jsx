@@ -1,48 +1,13 @@
-import { Link, NavLink, Navigate, Outlet } from "react-router-dom";
-import { Shield, Settings } from "lucide-react";
-import logo from "../../assets/nyc-logo.jpg";
-import { useDemoAuth } from "../../store/demoAuthStore.js";
+import React from "react";
+import { Outlet } from "react-router-dom";
+import { PublicHeader } from "./PublicHeader.jsx";
 import { Footer } from "./Footer.jsx";
-import { APP_NAV_LINKS } from "../../config/navigation.js";
-import { UserNavDropdown } from "./UserNavDropdown.jsx";
 
 export function AppShell() {
-  const { user } = useDemoAuth();
   return (
-    <div>
-      <header className="site-header app-header">
-        <Link className="brand" to="/dashboard">
-          <img src={logo} alt="Not Your College" />
-          <span>DSA Arena</span>
-        </Link>
-        <nav>
-          {APP_NAV_LINKS.map(({ label, to }) => (
-            <NavLink key={to} to={to}>
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-        <div className="header-actions">
-          {user ? (
-            <>
-              {user.role === "admin" && (
-                <Link className="admin-chip" to="/admin" title="Admin Control Console">
-                  <Shield size={13} /> Admin
-                </Link>
-              )}
-              <UserNavDropdown />
-            </>
-          ) : (
-            <>
-              <Link to="/login">Login</Link>
-              <Link className="button button-yellow" to="/register">
-                Join Arena
-              </Link>
-            </>
-          )}
-        </div>
-      </header>
-      <main className="app-main">
+    <div className="site-layout-wrapper">
+      <PublicHeader />
+      <main className="app-main site-body-content">
         <Outlet />
       </main>
       <Footer />

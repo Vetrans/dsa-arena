@@ -1,4 +1,6 @@
-export const PROBLEMS = [
+import { PROBLEMS_19_200 } from "./problems19_200.js";
+
+const PROBLEMS_1_18 = [
   {
     id: "two-sum",
     problemNumber: 1,
@@ -855,17 +857,855 @@ class Solution {
     }
 }`
     }
+  },
+  {
+    id: "best-time-to-buy-and-sell-stock",
+    problemNumber: 10,
+    title: "Best Time to Buy and Sell Stock",
+    slug: "best-time-to-buy-and-sell-stock",
+    difficulty: "Easy",
+    topics: ["Arrays", "Greedy"],
+    topicSlugs: ["arrays", "greedy"],
+    tags: ["Array", "Dynamic Programming"],
+    acceptance: "54.8%",
+    rewards: { xp: 20, rating: 15 },
+    description: `You are given an array \`prices\` where \`prices[i]\` is the price of a given stock on the \`i\`-th day.
+
+You want to maximize your profit by choosing a **single day** to buy one stock and choosing a **different day in the future** to sell that stock.
+
+Return *the maximum profit you can achieve from this transaction*. If you cannot achieve any profit, return \`0\`.`,
+    examples: [
+      {
+        input: "prices = [7,1,5,3,6,4]",
+        output: "5",
+        explanation: "Buy on day 2 (price = 1) and sell on day 5 (price = 6), profit = 6-1 = 5."
+      },
+      {
+        input: "prices = [7,6,4,3,1]",
+        output: "0",
+        explanation: "In this case, no transactions are done and the max profit = 0."
+      }
+    ],
+    constraints: [
+      "1 <= prices.length <= 10^5",
+      "0 <= prices[i] <= 10^4"
+    ],
+    hints: [
+      { order: 1, content: "Can you track the minimum buying price seen so far as you iterate through the array?" }
+    ],
+    editorial: {
+      approach: "One-Pass Greedy",
+      intuition: "Maintain minPrice seen so far and calculate prices[i] - minPrice at each step.",
+      timeComplexity: "O(N)",
+      spaceComplexity: "O(1)",
+      solutionCode: `function maxProfit(prices) {
+  let minPrice = Infinity;
+  let maxP = 0;
+  for (let p of prices) {
+    if (p < minPrice) minPrice = p;
+    else if (p - minPrice > maxP) maxP = p - minPrice;
+  }
+  return maxP;
+}`
+    },
+    testCases: [
+      { input: "[7,1,5,3,6,4]", expected: "5", isHidden: false },
+      { input: "[7,6,4,3,1]", expected: "0", isHidden: false },
+      { input: "[2,4,1]", expected: "2", isHidden: true }
+    ],
+    starterCode: {
+      javascript: `/**
+ * @param {number[]} prices
+ * @return {number}
+ */
+function maxProfit(prices) {
+  // Write your code here
+  
+}`,
+      python: `def maxProfit(prices: list[int]) -> int:
+    # Write your code here
+    pass`,
+      cpp: `#include <vector>
+#include <algorithm>
+using namespace std;
+
+class Solution {
+public:
+    int maxProfit(vector<int>& prices) {
+        // Write your code here
+    }
+};`,
+      java: `class Solution {
+    public int maxProfit(int[] prices) {
+        // Write your code here
+        return 0;
+    }
+}`
+    }
+  },
+  {
+    id: "product-of-array-except-self",
+    problemNumber: 11,
+    title: "Product of Array Except Self",
+    slug: "product-of-array-except-self",
+    difficulty: "Medium",
+    topics: ["Arrays", "Prefix Sum"],
+    topicSlugs: ["arrays"],
+    tags: ["Array", "Prefix Sum"],
+    acceptance: "65.4%",
+    rewards: { xp: 35, rating: 22 },
+    description: `Given an integer array \`nums\`, return *an array \`answer\` such that \`answer[i]\` is equal to the product of all the elements of \`nums\` except \`nums[i]\`*.
+
+The product of any prefix or suffix of \`nums\` is **guaranteed** to fit in a **32-bit** integer.
+
+You must write an algorithm that runs in \`O(n)\` time and without using the division operation.`,
+    examples: [
+      {
+        input: "nums = [1,2,3,4]",
+        output: "[24,12,8,6]",
+        explanation: "2*3*4=24, 1*3*4=12, 1*2*4=8, 1*2*3=6."
+      },
+      {
+        input: "nums = [-1,1,0,-3,3]",
+        output: "[0,0,9,0,0]",
+        explanation: "Product except 0 yields 9."
+      }
+    ],
+    constraints: [
+      "2 <= nums.length <= 10^5",
+      "-30 <= nums[i] <= 30"
+    ],
+    hints: [
+      { order: 1, content: "Compute prefix products in one pass, then suffix products in a backward pass." }
+    ],
+    editorial: {
+      approach: "Prefix & Suffix Products",
+      intuition: "Store left product prefix, then multiply by running right product suffix.",
+      timeComplexity: "O(N)",
+      spaceComplexity: "O(1) auxiliary",
+      solutionCode: `function productExceptSelf(nums) {
+  const n = nums.length;
+  const res = new Array(n).fill(1);
+  let left = 1;
+  for (let i = 0; i < n; i++) {
+    res[i] = left;
+    left *= nums[i];
+  }
+  let right = 1;
+  for (let i = n - 1; i >= 0; i--) {
+    res[i] *= right;
+    right *= nums[i];
+  }
+  return res;
+}`
+    },
+    testCases: [
+      { input: "[1,2,3,4]", expected: "[24,12,8,6]", isHidden: false },
+      { input: "[-1,1,0,-3,3]", expected: "[0,0,9,0,0]", isHidden: false },
+      { input: "[2,3,5,0]", expected: "[0,0,0,30]", isHidden: true }
+    ],
+    starterCode: {
+      javascript: `/**
+ * @param {number[]} nums
+ * @return {number[]}
+ */
+function productExceptSelf(nums) {
+  // Write your code here
+  
+}`,
+      python: `def productExceptSelf(nums: list[int]) -> list[int]:
+    # Write your code here
+    pass`,
+      cpp: `#include <vector>
+using namespace std;
+
+class Solution {
+public:
+    vector<int> productExceptSelf(vector<int>& nums) {
+        // Write your code here
+    }
+};`,
+      java: `class Solution {
+    public int[] productExceptSelf(int[] nums) {
+        // Write your code here
+        return new int[0];
+    }
+}`
+    }
+  },
+  {
+    id: "container-with-most-water",
+    problemNumber: 12,
+    title: "Container With Most Water",
+    slug: "container-with-most-water",
+    difficulty: "Medium",
+    topics: ["Arrays", "Two Pointers"],
+    topicSlugs: ["arrays"],
+    tags: ["Array", "Two Pointers", "Greedy"],
+    acceptance: "54.1%",
+    rewards: { xp: 35, rating: 22 },
+    description: `You are given an integer array \`height\` of length \`n\`. There are \`n\` vertical lines drawn such that the two endpoints of the \`i\`-th line are \`(i, 0)\` and \`(i, height[i])\`.
+
+Find two lines that together with the x-axis form a container, such that the container contains the most water.
+
+Return *the maximum amount of water a container can store*.`,
+    examples: [
+      {
+        input: "height = [1,8,6,2,5,4,8,3,7]",
+        output: "49",
+        explanation: "The max area is between index 1 (height 8) and index 8 (height 7): min(8, 7) * (8 - 1) = 49."
+      },
+      {
+        input: "height = [1,1]",
+        output: "1",
+        explanation: "min(1, 1) * 1 = 1."
+      }
+    ],
+    constraints: [
+      "n == height.length",
+      "2 <= n <= 10^5",
+      "0 <= height[i] <= 10^4"
+    ],
+    hints: [
+      { order: 1, content: "Start with maximum width (pointers at opposite ends) and move the pointer pointing to the shorter line inward." }
+    ],
+    editorial: {
+      approach: "Two Pointers",
+      intuition: "Width shrinks with every step, so we must advance the shorter height to have any hope of finding a larger area.",
+      timeComplexity: "O(N)",
+      spaceComplexity: "O(1)",
+      solutionCode: `function maxArea(height) {
+  let left = 0, right = height.length - 1;
+  let maxA = 0;
+  while (left < right) {
+    const h = Math.min(height[left], height[right]);
+    maxA = Math.max(maxA, h * (right - left));
+    if (height[left] < height[right]) left++;
+    else right--;
+  }
+  return maxA;
+}`
+    },
+    testCases: [
+      { input: "[1,8,6,2,5,4,8,3,7]", expected: "49", isHidden: false },
+      { input: "[1,1]", expected: "1", isHidden: false },
+      { input: "[4,3,2,1,4]", expected: "16", isHidden: true }
+    ],
+    starterCode: {
+      javascript: `/**
+ * @param {number[]} height
+ * @return {number}
+ */
+function maxArea(height) {
+  // Write your code here
+  
+}`,
+      python: `def maxArea(height: list[int]) -> int:
+    # Write your code here
+    pass`,
+      cpp: `#include <vector>
+#include <algorithm>
+using namespace std;
+
+class Solution {
+public:
+    int maxArea(vector<int>& height) {
+        // Write your code here
+    }
+};`,
+      java: `class Solution {
+    public int maxArea(int[] height) {
+        // Write your code here
+        return 0;
+    }
+}`
+    }
+  },
+  {
+    id: "trapping-rain-water",
+    problemNumber: 13,
+    title: "Trapping Rain Water",
+    slug: "trapping-rain-water",
+    difficulty: "Hard",
+    topics: ["Arrays", "Two Pointers", "Stack"],
+    topicSlugs: ["arrays", "stack"],
+    tags: ["Array", "Two Pointers", "Dynamic Programming", "Monotonic Stack"],
+    acceptance: "60.2%",
+    rewards: { xp: 60, rating: 35 },
+    description: `Given \`n\` non-negative integers representing an elevation map where the width of each bar is \`1\`, compute how much water it can trap after raining.`,
+    examples: [
+      {
+        input: "height = [0,1,0,2,1,0,1,3,2,1,2,1]",
+        output: "6",
+        explanation: "The above elevation map is represented by array [0,1,0,2,1,0,1,3,2,1,2,1]. In this case, 6 units of rain water are trapped."
+      },
+      {
+        input: "height = [4,2,0,3,2,5]",
+        output: "9",
+        explanation: "9 units of rain water trapped."
+      }
+    ],
+    constraints: [
+      "n == height.length",
+      "1 <= n <= 2 * 10^4",
+      "0 <= height[i] <= 10^5"
+    ],
+    hints: [
+      { order: 1, content: "Water trapped at index i is determined by min(maxLeft, maxRight) - height[i]." }
+    ],
+    editorial: {
+      approach: "Two Pointers Optimal",
+      intuition: "Track leftMax and rightMax. Process whichever side has the lower boundary.",
+      timeComplexity: "O(N)",
+      spaceComplexity: "O(1)",
+      solutionCode: `function trap(height) {
+  let left = 0, right = height.length - 1;
+  let leftMax = 0, rightMax = 0;
+  let water = 0;
+  while (left < right) {
+    if (height[left] < height[right]) {
+      if (height[left] >= leftMax) leftMax = height[left];
+      else water += leftMax - height[left];
+      left++;
+    } else {
+      if (height[right] >= rightMax) rightMax = height[right];
+      else water += rightMax - height[right];
+      right--;
+    }
+  }
+  return water;
+}`
+    },
+    testCases: [
+      { input: "[0,1,0,2,1,0,1,3,2,1,2,1]", expected: "6", isHidden: false },
+      { input: "[4,2,0,3,2,5]", expected: "9", isHidden: false },
+      { input: "[3,0,2,0,4]", expected: "7", isHidden: true }
+    ],
+    starterCode: {
+      javascript: `/**
+ * @param {number[]} height
+ * @return {number}
+ */
+function trap(height) {
+  // Write your code here
+  
+}`,
+      python: `def trap(height: list[int]) -> int:
+    # Write your code here
+    pass`,
+      cpp: `#include <vector>
+#include <algorithm>
+using namespace std;
+
+class Solution {
+public:
+    int trap(vector<int>& height) {
+        // Write your code here
+    }
+};`,
+      java: `class Solution {
+    public int trap(int[] height) {
+        // Write your code here
+        return 0;
+    }
+}`
+    }
+  },
+  {
+    id: "spiral-matrix",
+    problemNumber: 14,
+    title: "Spiral Matrix",
+    slug: "spiral-matrix",
+    difficulty: "Medium",
+    topics: ["Matrix", "Simulation"],
+    topicSlugs: ["arrays"],
+    tags: ["Array", "Matrix", "Simulation"],
+    acceptance: "48.2%",
+    rewards: { xp: 35, rating: 20 },
+    description: `Given an \`m x n\` \`matrix\`, return *all elements of the \`matrix\` in spiral order*.`,
+    examples: [
+      {
+        input: "matrix = [[1,2,3],[4,5,6],[7,8,9]]",
+        output: "[1,2,3,6,9,8,7,4,5]",
+        explanation: "Traverse right, down, left, up."
+      }
+    ],
+    constraints: [
+      "m == matrix.length",
+      "n == matrix[i].length",
+      "1 <= m, n <= 10",
+      "-100 <= matrix[i][j] <= 100"
+    ],
+    hints: [
+      { order: 1, content: "Maintain 4 boundary pointers: top, bottom, left, right, and advance them inward after each sweep." }
+    ],
+    editorial: {
+      approach: "Boundary Simulation",
+      intuition: "Iterate across top row, right column, bottom row, left column, then increment/decrement the boundaries.",
+      timeComplexity: "O(M * N)",
+      spaceComplexity: "O(1)",
+      solutionCode: `function spiralOrder(matrix) {
+  const res = [];
+  if (!matrix.length) return res;
+  let top = 0, bottom = matrix.length - 1;
+  let left = 0, right = matrix[0].length - 1;
+  while (top <= bottom && left <= right) {
+    for (let c = left; c <= right; c++) res.push(matrix[top][c]);
+    top++;
+    for (let r = top; r <= bottom; r++) res.push(matrix[r][right]);
+    right--;
+    if (top <= bottom) {
+      for (let c = right; c >= left; c--) res.push(matrix[bottom][c]);
+      bottom--;
+    }
+    if (left <= right) {
+      for (let r = bottom; r >= top; r--) res.push(matrix[r][left]);
+      left++;
+    }
+  }
+  return res;
+}`
+    },
+    testCases: [
+      { input: "[[1,2,3],[4,5,6],[7,8,9]]", expected: "[1,2,3,6,9,8,7,4,5]", isHidden: false },
+      { input: "[[1,2],[3,4]]", expected: "[1,2,4,3]", isHidden: false },
+      { input: "[[1]]", expected: "[1]", isHidden: true }
+    ],
+    starterCode: {
+      javascript: `/**
+ * @param {number[][]} matrix
+ * @return {number[]}
+ */
+function spiralOrder(matrix) {
+  // Write your code here
+  
+}`,
+      python: `def spiralOrder(matrix: list[list[int]]) -> list[int]:
+    # Write your code here
+    pass`,
+      cpp: `#include <vector>
+using namespace std;
+
+class Solution {
+public:
+    vector<int> spiralOrder(vector<vector<int>>& matrix) {
+        // Write your code here
+    }
+};`,
+      java: `import java.util.*;
+
+class Solution {
+    public List<Integer> spiralOrder(int[][] matrix) {
+        // Write your code here
+        return new ArrayList<>();
+    }
+}`
+    }
+  },
+  {
+    id: "search-in-rotated-sorted-array",
+    problemNumber: 15,
+    title: "Search in Rotated Sorted Array",
+    slug: "search-in-rotated-sorted-array",
+    difficulty: "Medium",
+    topics: ["Searching", "Binary Search"],
+    topicSlugs: ["arrays"],
+    tags: ["Array", "Binary Search"],
+    acceptance: "40.3%",
+    rewards: { xp: 35, rating: 22 },
+    description: `There is an integer array \`nums\` sorted in ascending order (with **distinct** values). Prior to being passed to your function, \`nums\` is possibly rotated at an unknown pivot index \`k\`.
+
+Given the array \`nums\` after the possible rotation and an integer \`target\`, return *the index of \`target\` if it is in \`nums\`, or \`-1\` if it is not in \`nums\`*.
+
+You must write an algorithm with \`O(log n)\` runtime complexity.`,
+    examples: [
+      {
+        input: "nums = [4,5,6,7,0,1,2], target = 0",
+        output: "4",
+        explanation: "0 is at index 4."
+      },
+      {
+        input: "nums = [4,5,6,7,0,1,2], target = 3",
+        output: "-1",
+        explanation: "3 is not in nums."
+      }
+    ],
+    constraints: [
+      "1 <= nums.length <= 5000",
+      "-10^4 <= nums[i] <= 10^4",
+      "All values of nums are unique."
+    ],
+    hints: [
+      { order: 1, content: "In any rotated sorted array, at least one half (left or right) is guaranteed to be strictly sorted." }
+    ],
+    editorial: {
+      approach: "Modified Binary Search",
+      intuition: "Check which half is normally sorted, then determine whether the target lies within that sorted range.",
+      timeComplexity: "O(log N)",
+      spaceComplexity: "O(1)",
+      solutionCode: `function search(nums, target) {
+  let low = 0, high = nums.length - 1;
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    if (nums[mid] === target) return mid;
+    if (nums[low] <= nums[mid]) {
+      if (nums[low] <= target && target < nums[mid]) high = mid - 1;
+      else low = mid + 1;
+    } else {
+      if (nums[mid] < target && target <= nums[high]) low = mid + 1;
+      else high = mid - 1;
+    }
+  }
+  return -1;
+}`
+    },
+    testCases: [
+      { input: "[4,5,6,7,0,1,2], 0", expected: "4", isHidden: false },
+      { input: "[4,5,6,7,0,1,2], 3", expected: "-1", isHidden: false },
+      { input: "[1], 0", expected: "-1", isHidden: true }
+    ],
+    starterCode: {
+      javascript: `/**
+ * @param {number[]} nums
+ * @param {number} target
+ * @return {number}
+ */
+function search(nums, target) {
+  // Write your code here
+  
+}`,
+      python: `def search(nums: list[int], target: int) -> int:
+    # Write your code here
+    pass`,
+      cpp: `#include <vector>
+using namespace std;
+
+class Solution {
+public:
+    int search(vector<int>& nums, int target) {
+        // Write your code here
+    }
+};`,
+      java: `class Solution {
+    public int search(int[] nums, int target) {
+        // Write your code here
+        return -1;
+    }
+}`
+    }
+  },
+  {
+    id: "invert-binary-tree",
+    problemNumber: 16,
+    title: "Invert Binary Tree",
+    slug: "invert-binary-tree",
+    difficulty: "Easy",
+    topics: ["Trees", "Recursion"],
+    topicSlugs: ["graphs"],
+    tags: ["Tree", "Depth-First Search", "Breadth-First Search", "Binary Tree"],
+    acceptance: "76.8%",
+    rewards: { xp: 20, rating: 12 },
+    description: `Given the \`root\` of a binary tree, invert the tree, and return *its root*.`,
+    examples: [
+      {
+        input: "root = [4,2,7,1,3,6,9]",
+        output: "[4,7,2,9,6,3,1]",
+        explanation: "Swap left and right children recursively."
+      }
+    ],
+    constraints: [
+      "The number of nodes in the tree is in the range [0, 100].",
+      "-100 <= Node.val <= 100"
+    ],
+    hints: [
+      { order: 1, content: "Recursively swap the left child and right child of every node." }
+    ],
+    editorial: {
+      approach: "DFS Recursion",
+      intuition: "Swap left and right subtrees, then recurse on both children.",
+      timeComplexity: "O(N)",
+      spaceComplexity: "O(H) call stack",
+      solutionCode: `function invertTree(root) {
+  if (!root) return null;
+  const temp = root.left;
+  root.left = invertTree(root.right);
+  root.right = invertTree(temp);
+  return root;
+}`
+    },
+    testCases: [
+      { input: "[4,2,7,1,3,6,9]", expected: "[4,7,2,9,6,3,1]", isHidden: false },
+      { input: "[2,1,3]", expected: "[2,3,1]", isHidden: false },
+      { input: "[]", expected: "[]", isHidden: true }
+    ],
+    starterCode: {
+      javascript: `/**
+ * Definition for a binary tree node.
+ * function TreeNode(val, left, right) {
+ *     this.val = (val===undefined ? 0 : val)
+ *     this.left = (left===undefined ? null : left)
+ *     this.right = (right===undefined ? null : right)
+ * }
+ * @param {TreeNode} root
+ * @return {TreeNode}
+ */
+function invertTree(root) {
+  // Write your code here
+  
+}`,
+      python: `class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right
+
+def invertTree(root: TreeNode) -> TreeNode:
+    # Write your code here
+    pass`,
+      cpp: `struct TreeNode {
+    int val;
+    TreeNode *left;
+    TreeNode *right;
+    TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+};
+
+class Solution {
+public:
+    TreeNode* invertTree(TreeNode* root) {
+        // Write your code here
+    }
+};`,
+      java: `class TreeNode {
+    int val;
+    TreeNode left;
+    TreeNode right;
+    TreeNode(int x) { val = x; }
+}
+
+class Solution {
+    public TreeNode invertTree(TreeNode root) {
+        // Write your code here
+        return root;
+    }
+}`
+    }
+  },
+  {
+    id: "number-of-islands",
+    problemNumber: 17,
+    title: "Number of Islands",
+    slug: "number-of-islands",
+    difficulty: "Medium",
+    topics: ["Graphs", "BFS/DFS"],
+    topicSlugs: ["graphs"],
+    tags: ["Array", "Depth-First Search", "Breadth-First Search", "Union Find", "Matrix"],
+    acceptance: "58.1%",
+    rewards: { xp: 40, rating: 24 },
+    description: `Given an \`m x n\` 2D binary grid \`grid\` which represents a map of \`'1'\`s (land) and \`'0'\`s (water), return *the number of islands*.
+
+An **island** is surrounded by water and is formed by connecting adjacent lands horizontally or vertically. You may assume all four edges of the grid are all surrounded by water.`,
+    examples: [
+      {
+        input: `grid = [
+  ["1","1","1","1","0"],
+  ["1","1","0","1","0"],
+  ["1","1","0","0","0"],
+  ["0","0","0","0","0"]
+]`,
+        output: "1",
+        explanation: "All 1s belong to one connected island."
+      }
+    ],
+    constraints: [
+      "m == grid.length",
+      "n == grid[i].length",
+      "1 <= m, n <= 300",
+      "grid[i][j] is '0' or '1'."
+    ],
+    hints: [
+      { order: 1, content: "Iterate through the grid. When you hit a '1', increment your island counter and flood-fill (sink) the entire island using DFS or BFS." }
+    ],
+    editorial: {
+      approach: "DFS Flood Fill",
+      intuition: "Sink each discovered island by marking all connected land cells as '0'.",
+      timeComplexity: "O(M * N)",
+      spaceComplexity: "O(M * N)",
+      solutionCode: `function numIslands(grid) {
+  if (!grid || !grid.length) return 0;
+  let count = 0;
+  const dfs = (r, c) => {
+    if (r < 0 || r >= grid.length || c < 0 || c >= grid[0].length || grid[r][c] !== '1') return;
+    grid[r][c] = '0';
+    dfs(r + 1, c);
+    dfs(r - 1, c);
+    dfs(r, c + 1);
+    dfs(r, c - 1);
+  };
+  for (let r = 0; r < grid.length; r++) {
+    for (let c = 0; c < grid[0].length; c++) {
+      if (grid[r][c] === '1') {
+        count++;
+        dfs(r, c);
+      }
+    }
+  }
+  return count;
+}`
+    },
+    testCases: [
+      { input: '[["1","1","1"],["0","1","0"],["1","1","1"]]', expected: "1", isHidden: false },
+      { input: '[["1","0","1"],["0","1","0"],["1","0","1"]]', expected: "5", isHidden: false },
+      { input: '[["0","0"],["0","0"]]', expected: "0", isHidden: true }
+    ],
+    starterCode: {
+      javascript: `/**
+ * @param {character[][]} grid
+ * @return {number}
+ */
+function numIslands(grid) {
+  // Write your code here
+  
+}`,
+      python: `def numIslands(grid: list[list[str]]) -> int:
+    # Write your code here
+    pass`,
+      cpp: `#include <vector>
+using namespace std;
+
+class Solution {
+public:
+    int numIslands(vector<vector<char>>& grid) {
+        // Write your code here
+    }
+};`,
+      java: `class Solution {
+    public int numIslands(char[][] grid) {
+        // Write your code here
+        return 0;
+    }
+}`
+    }
+  },
+  {
+    id: "longest-increasing-subsequence",
+    problemNumber: 18,
+    title: "Longest Increasing Subsequence",
+    slug: "longest-increasing-subsequence",
+    difficulty: "Medium",
+    topics: ["Dynamic Programming", "Binary Search"],
+    topicSlugs: ["dynamic-programming"],
+    tags: ["Array", "Binary Search", "Dynamic Programming"],
+    acceptance: "54.6%",
+    rewards: { xp: 45, rating: 26 },
+    description: `Given an integer array \`nums\`, return *the length of the longest strictly increasing subsequence*.`,
+    examples: [
+      {
+        input: "nums = [10,9,2,5,3,7,101,18]",
+        output: "4",
+        explanation: "The longest increasing subsequence is [2,3,7,101], therefore the length is 4."
+      },
+      {
+        input: "nums = [0,1,0,3,2,3]",
+        output: "4",
+        explanation: "The longest increasing subsequence is [0,1,2,3]."
+      }
+    ],
+    constraints: [
+      "1 <= nums.length <= 2500",
+      "-10^4 <= nums[i] <= 10^4"
+    ],
+    hints: [
+      { order: 1, content: "Can you maintain a tails array where tails[i] stores the smallest tail of all increasing subsequences of length i+1?" }
+    ],
+    editorial: {
+      approach: "Patience Sorting / Binary Search",
+      intuition: "Maintain an array 'tails' and use binary search (bisect_left) to replace the first element >= x.",
+      timeComplexity: "O(N log N)",
+      spaceComplexity: "O(N)",
+      solutionCode: `function lengthOfLIS(nums) {
+  const tails = [];
+  for (const x of nums) {
+    let l = 0, r = tails.length;
+    while (l < r) {
+      const mid = (l + r) >> 1;
+      if (tails[mid] < x) l = mid + 1;
+      else r = mid;
+    }
+    tails[l] = x;
+  }
+  return tails.length;
+}`
+    },
+    testCases: [
+      { input: "[10,9,2,5,3,7,101,18]", expected: "4", isHidden: false },
+      { input: "[0,1,0,3,2,3]", expected: "4", isHidden: false },
+      { input: "[7,7,7,7,7,7,7]", expected: "1", isHidden: true }
+    ],
+    starterCode: {
+      javascript: `/**
+ * @param {number[]} nums
+ * @return {number}
+ */
+function lengthOfLIS(nums) {
+  // Write your code here
+  
+}`,
+      python: `def lengthOfLIS(nums: list[int]) -> int:
+    # Write your code here
+    pass`,
+      cpp: `#include <vector>
+#include <algorithm>
+using namespace std;
+
+class Solution {
+public:
+    int lengthOfLIS(vector<int>& nums) {
+        // Write your code here
+    }
+};`,
+      java: `import java.util.*;
+
+class Solution {
+    public int lengthOfLIS(int[] nums) {
+        // Write your code here
+        return 0;
+    }
+}`
+    }
   }
 ];
 
-export const TOPICS = [
-  { slug: "all", name: "All Topics", count: 9 },
-  { slug: "arrays", name: "Arrays", count: 4 },
-  { slug: "strings", name: "Strings", count: 3 },
-  { slug: "dynamic-programming", name: "Dynamic Programming", count: 3 },
-  { slug: "stack", name: "Stack", count: 1 },
-  { slug: "linked-lists", name: "Linked Lists", count: 1 },
-  { slug: "sliding-window", name: "Sliding Window", count: 1 },
-  { slug: "graphs", name: "Graphs", count: 1 },
-  { slug: "hashing", name: "Hashing", count: 2 }
+export const PROBLEMS = [
+  ...PROBLEMS_1_18,
+  ...PROBLEMS_19_200.map((p) => ({
+    ...p,
+    topics: p.topics || p.tags || []
+  }))
 ];
+
+export const TOPICS = [
+  { slug: "all", name: "All Topics", count: 200 },
+  { slug: "dynamic-programming", name: "Dynamic Programming", count: 33 },
+  { slug: "arrays", name: "Arrays", count: 27 },
+  { slug: "strings", name: "Strings", count: 23 },
+  { slug: "two-pointers", name: "Two Pointers", count: 23 },
+  { slug: "recursion", name: "Recursion", count: 23 },
+  { slug: "graphs", name: "Graphs", count: 22 },
+  { slug: "trees", name: "Trees", count: 21 },
+  { slug: "linked-lists", name: "Linked Lists", count: 18 },
+  { slug: "hashing", name: "Hashing", count: 17 },
+  { slug: "backtracking", name: "Backtracking", count: 17 },
+  { slug: "stack", name: "Stack", count: 16 },
+  { slug: "greedy", name: "Greedy", count: 16 },
+  { slug: "heaps", name: "Heaps", count: 14 },
+  { slug: "queue", name: "Queue", count: 14 },
+  { slug: "binary-search", name: "Binary Search", count: 11 },
+  { slug: "sliding-window", name: "Sliding Window", count: 11 },
+  { slug: "bit-manipulation", name: "Bit Manipulation", count: 9 },
+  { slug: "sorting", name: "Sorting", count: 7 },
+  { slug: "matrix", name: "Matrix", count: 5 },
+  { slug: "math", name: "Math", count: 4 },
+  { slug: "prefix-sum", name: "Prefix Sum", count: 1 },
+  { slug: "trie", name: "Trie", count: 1 }
+];
+

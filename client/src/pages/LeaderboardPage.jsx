@@ -102,7 +102,7 @@ export function LeaderboardPage() {
     if (tab.id === "rating") return stats.rank || "Novice";
     if (tab.id === "xp") return `Lvl ${stats.level || 1}`;
     if (tab.id === "problems_solved") return `${stats.currentStreak || 0}d Streak`;
-    if (tab.id === "streak") return stats.currentStreak > 0 ? "🔥 Active" : "Inactive";
+    if (tab.id === "streak") return stats.currentStreak > 0 ? "Active" : "Inactive";
     return "";
   };
 

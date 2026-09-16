@@ -11,7 +11,10 @@ export const getEmptyState = () => ({
   unlockedHints: {},
   codeDrafts: {},
   submissions: [],
-  claimedAchievements: []
+  claimedAchievements: [],
+  reputation: "CLEAN",
+  warnings: [],
+  latestWarning: null
 });
 
 const getCurrentUserId = () => {
@@ -36,7 +39,10 @@ const getInitialState = (userId = getCurrentUserId()) => {
   // Purge legacy shared key to eliminate leaked mock data
   try {
     localStorage.removeItem("nyc_arena_state_v1");
-  } catch {}
+  } catch {
+    /* ignore */
+    void 0;
+  }
 
   const key = getUserStorageKey(userId);
   try {
@@ -77,7 +83,13 @@ export const useArenaStore = create((set, storeGet) => ({
         stateForUser.userRating = user.stats.rating ?? 1200;
         stateForUser.streakDays = user.stats.currentStreak ?? 0;
       }
-    } catch {}
+      if (user?.reputation) stateForUser.reputation = user.reputation;
+      if (Array.isArray(user?.warnings)) stateForUser.warnings = user.warnings;
+      if (user?.latestWarning) stateForUser.latestWarning = user.latestWarning;
+    } catch {
+      /* ignore */
+      void 0;
+    }
 
     set(() => stateForUser);
   },
@@ -95,6 +107,9 @@ export const useArenaStore = create((set, storeGet) => ({
         if (typeof overview.rating === "number") nextState.userRating = overview.rating;
         if (typeof overview.xp === "number") nextState.userXP = overview.xp;
         if (typeof overview.currentStreak === "number") nextState.streakDays = overview.currentStreak;
+        if (overview.reputation) nextState.reputation = overview.reputation;
+        if (Array.isArray(overview.warnings)) nextState.warnings = overview.warnings;
+        if (overview.latestWarning) nextState.latestWarning = overview.latestWarning;
       }
       if (Array.isArray(submissions) && submissions.length > 0) {
         // Format backend submissions to match store schema

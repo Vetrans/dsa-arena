@@ -1,18 +1,15 @@
 import React from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import {
-  Shield,
   LayoutDashboard,
   Trophy,
   Code2,
   Users,
   MessageSquare,
-  ArrowLeft,
-  Flame,
-  Plus
+  ArrowLeft
 } from "lucide-react";
-import logo from "../../assets/nyc-logo.jpg";
-import { useDemoAuth } from "../../store/demoAuthStore.js";
+import logo from "../../assets/nyc-logo-svg.svg";
+import { UserNavDropdown } from "../../components/app/UserNavDropdown.jsx";
 import "./AdminDashboard.css";
 
 const ADMIN_LINKS = [
@@ -24,7 +21,6 @@ const ADMIN_LINKS = [
 ];
 
 export function AdminLayout() {
-  const { user } = useDemoAuth();
 
   return (
     <div className="admin-root">
@@ -36,16 +32,12 @@ export function AdminLayout() {
           </Link>
           <span className="ah-divider">/</span>
           <div className="ah-brand">
-            <img src={logo} alt="NYC DSA Arena" />
-            <span>NYC SUPER-ADMIN CONSOLE</span>
+            <img src={logo} alt="Not Your College" />
           </div>
         </div>
 
         <div className="ah-right">
-          <span className="admin-status-pill">
-            <Shield size={14} /> Full Access Mode
-          </span>
-          <span className="ah-user">@{user?.username || "admin"}</span>
+          <UserNavDropdown />
         </div>
       </header>
 
@@ -74,7 +66,7 @@ export function AdminLayout() {
 
           <div className="admin-sidebar-footer">
             <div className="sidebar-info-card">
-              <b>⚡ High-Scale Engine</b>
+              <b>High-Scale Arena Engine</b>
               <p>Managing live contests, problem vault testcases, and user ELO.</p>
             </div>
           </div>

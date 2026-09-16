@@ -14,7 +14,8 @@ import {
   User,
   Shield,
   Clock,
-  Sparkles
+  Sparkles,
+  AlertTriangle
 } from "lucide-react";
 import { useDemoAuth } from "../store/demoAuthStore.js";
 import { useArenaStore } from "../store/arenaStore.js";
@@ -39,6 +40,9 @@ export function DashboardPage() {
     streakDays,
     solvedProblemSlugs,
     submissions,
+    reputation,
+    warnings,
+    latestWarning,
     syncFromBackend
   } = useArenaStore();
 
@@ -139,8 +143,65 @@ export function DashboardPage() {
   const username = user?.username || "arena_engineer";
   const userInitial = username.slice(0, 1).toUpperCase();
 
+  const isClean = !reputation || reputation === "CLEAN";
+  const isWarned = reputation === "WARNED";
+  const isSuspended = reputation === "SUSPENDED";
+
   return (
     <div className="dashboard-page">
+      {/* Reputation Warning Notice if Warned or Suspended */}
+      {isWarned && (
+        <div
+          style={{
+            background: "#fef3c7",
+            border: "2.5px solid #b45309",
+            boxShadow: "3px 3px 0 #b45309",
+            padding: "16px 20px",
+            marginBottom: "24px",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "14px"
+          }}
+        >
+          <AlertTriangle size={24} color="#b45309" style={{ flexShrink: 0, marginTop: "2px" }} />
+          <div>
+            <h3 style={{ margin: "0 0 4px", fontSize: "15px", fontWeight: 900, color: "#b45309" }}>
+              Official Arena Disciplinary Notice ({warnings?.length || 1} warning{warnings?.length > 1 ? "s" : ""})
+            </h3>
+            <p style={{ margin: 0, fontSize: "13px", color: "#78350f" }}>
+              {latestWarning?.reason
+                ? `Reason: "${latestWarning.reason}"`
+                : "An administrator has issued an official fair play warning to your account. Please follow arena guidelines."}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {isSuspended && (
+        <div
+          style={{
+            background: "#fee2e2",
+            border: "2.5px solid #dc2626",
+            boxShadow: "3px 3px 0 #dc2626",
+            padding: "16px 20px",
+            marginBottom: "24px",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "14px"
+          }}
+        >
+          <AlertTriangle size={24} color="#dc2626" style={{ flexShrink: 0, marginTop: "2px" }} />
+          <div>
+            <h3 style={{ margin: "0 0 4px", fontSize: "15px", fontWeight: 900, color: "#dc2626" }}>
+              Account Suspended
+            </h3>
+            <p style={{ margin: 0, fontSize: "13px", color: "#991b1b" }}>
+              Your account standing is currently SUSPENDED. Competitive submission and leaderboard participation may be restricted.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Top Welcome / Hero Banner */}
       <section className="dashboard-hero">
         <div className="user-profile-summary">
@@ -148,7 +209,36 @@ export function DashboardPage() {
             <span>{userInitial}</span>
           </div>
           <div className="profile-details">
-            <div className="welcome-tag">ARENA COMPETITOR</div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+              <div className="welcome-tag">ARENA COMPETITOR</div>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "11px",
+                  fontWeight: 900,
+                  padding: "2px 8px",
+                  border: "1.5px solid var(--ink)",
+                  background: isSuspended ? "#fee2e2" : isWarned ? "#fef3c7" : "#dcfce7",
+                  color: isSuspended ? "#dc2626" : isWarned ? "#b45309" : "#16a34a"
+                }}
+              >
+                {isSuspended ? (
+                  <>
+                    <AlertTriangle size={11} /> STANDING: SUSPENDED
+                  </>
+                ) : isWarned ? (
+                  <>
+                    <AlertTriangle size={11} /> STANDING: WARNED ({warnings?.length || 1})
+                  </>
+                ) : (
+                  <>
+                    <Shield size={11} /> STANDING: CLEAN
+                  </>
+                )}
+              </span>
+            </div>
             <h1>@{username}</h1>
             <p className="rank-title">
               Level {currentLevel} · {getDivisionTitle(userRating)}

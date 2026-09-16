@@ -47,6 +47,81 @@ describe('Judge Service', () => {
     expect(result.status).toBe('WRONG_ANSWER');
     expect(result.passedTestCases).toBe(0);
   });
+
+  it('should dynamically execute arrow functions with custom names', async () => {
+    const code = `
+      const myCustomSumAlgo = (nums, target) => {
+        const map = new Map();
+        for (let i = 0; i < nums.length; i++) {
+          const comp = target - nums[i];
+          if (map.has(comp)) return [map.get(comp), i];
+          map.set(nums[i], i);
+        }
+        return [];
+      };
+    `;
+    const testCases = [
+      { input: '[2, 7, 11, 15], 9', expected: '[0, 1]' },
+      { input: '[3, 2, 4], 6', expected: '[1, 2]' }
+    ];
+
+    const result = await evaluateSubmission({
+      code,
+      language: 'javascript',
+      testCases
+    });
+
+    expect(result.status).toBe('ACCEPTED');
+    expect(result.passedTestCases).toBe(2);
+  });
+
+  it('should dynamically execute class Solution methods', async () => {
+    const code = `
+      class Solution {
+        solve(s) {
+          return s === s.split('').reverse().join('');
+        }
+      }
+    `;
+    const testCases = [
+      { input: '"racecar"', expected: 'true' },
+      { input: '"hello"', expected: 'false' }
+    ];
+
+    const result = await evaluateSubmission({
+      code,
+      language: 'javascript',
+      testCases
+    });
+
+    expect(result.status).toBe('ACCEPTED');
+    expect(result.passedTestCases).toBe(2);
+  });
+
+  it('should execute Python solutions dynamically', async () => {
+    const code = `
+def twoSum(nums, target):
+    seen = {}
+    for i, num in enumerate(nums):
+        diff = target - num
+        if diff in seen:
+            return [seen[diff], i]
+        seen[num] = i
+    return []
+`;
+    const testCases = [
+      { input: '[2, 7, 11, 15], 9', expected: '[0, 1]' }
+    ];
+
+    const result = await evaluateSubmission({
+      code,
+      language: 'python',
+      testCases
+    });
+
+    expect(result.status).toBe('ACCEPTED');
+    expect(result.passedTestCases).toBe(1);
+  });
 });
 
 describe('Game Config', () => {

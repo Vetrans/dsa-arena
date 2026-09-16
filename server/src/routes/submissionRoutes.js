@@ -5,6 +5,7 @@ import { submissionLimiter } from '../middlewares/rateLimiter.js';
 
 const router = express.Router();
 
+router.post('/run', submissionLimiter, submissionController.runCode);
 router.post('/', authenticate, submissionLimiter, submissionController.submitSolution);
 router.get('/history', authenticate, submissionController.getSubmissions);
 router.get('/:id/events', authenticate, submissionController.getSubmissionEvents);

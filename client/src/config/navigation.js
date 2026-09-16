@@ -1,8 +1,8 @@
 export const PUBLIC_NAV_LINKS = [
   { label: "Home", to: "/" },
+  { label: "Features", to: "/features" },
   { label: "Contests", to: "/contests" },
   { label: "Leaderboard", to: "/leaderboard" },
-  { label: "NYC Team", to: "/?view=team" },
   { label: "Contact Us", to: "/?view=contact" }
 ];
 
@@ -15,3 +15,4 @@ export const APP_NAV_LINKS = [
   { label: "Leaderboard", to: "/leaderboard" },
   { label: "Achievements", to: "/achievements" }
 ];
+

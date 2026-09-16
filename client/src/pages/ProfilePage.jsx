@@ -248,7 +248,7 @@ export function ProfilePage() {
               ) : (
                 claimedAchievements.map((b) => (
                   <span className="bm-badge" key={b}>
-                    🏆 {b}
+                    <Award size={13} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} /> {b}
                   </span>
                 ))
               )}

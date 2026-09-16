@@ -15,6 +15,7 @@ import {
 import { PROBLEMS } from "../data/problemsData.js";
 import { executeProblemTests } from "../services/sandboxJudge.js";
 import { useArenaStore } from "../store/arenaStore.js";
+import { ContestAnalysisModal } from "../components/app/ContestAnalysisModal.jsx";
 import "./ContestArenaPage.css";
 
 const CONTEST_PROBLEMS = [
@@ -39,6 +40,7 @@ export function ContestArenaPage() {
   const [activeTab, setActiveTab] = useState("A"); // 'A' | 'B' | 'C' | 'D' | 'standings'
   const [timeLeft, setTimeLeft] = useState(5400); // 1h 30m
   const [solvedInContest, setSolvedInContest] = useState(["A"]);
+  const [showAnalysis, setShowAnalysis] = useState(false);
 
   // Problem & Editor state
   const activeProbObj =
@@ -146,6 +148,21 @@ export function ContestArenaPage() {
         </div>
 
         <div className="ch-right">
+          <button
+            className="button button-yellow"
+            onClick={() => setShowAnalysis(true)}
+            style={{
+              minHeight: "36px",
+              padding: "0 14px",
+              fontSize: "12px",
+              fontWeight: 900,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px"
+            }}
+          >
+            <Trophy size={14} /> Contest Analysis
+          </button>
           <div className="contest-rank-chip">
             <span>YOUR RANK</span>
             <b>#4 / 312</b>
@@ -307,6 +324,31 @@ export function ContestArenaPage() {
           </div>
         </div>
       )}
+
+      {/* Contest Post-Match Performance Analysis Modal */}
+      <ContestAnalysisModal
+        isOpen={showAnalysis}
+        onClose={() => setShowAnalysis(false)}
+        contestTitle={slug ? slug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "NYC Biweekly Arena #12"}
+        solvedCount={solvedInContest.length}
+        totalProblems={CONTEST_PROBLEMS.length}
+        penalty="48:12"
+        ratingChange={34}
+        onAcceptAnalysis={() => {
+          recordSubmission({
+            problemSlug: "contest-settlement",
+            problemTitle: "[Contest Performance Sunk] ELO +34",
+            verdict: "ACCEPTED",
+            verdictLabel: "Contest Sunk (+34 ELO)",
+            language: "system",
+            runtime: 24,
+            memory: 38.2,
+            code: "// Contest Official Telemetry Finalized",
+            xpReward: 350,
+            ratingReward: 34
+          });
+        }}
+      />
     </div>
   );
 }

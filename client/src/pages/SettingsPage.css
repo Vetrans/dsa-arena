@@ -100,26 +100,32 @@
 }
 
 .av-btn {
-  width: 44px;
-  height: 44px;
-  font-size: 22px;
+  min-width: 64px;
+  height: 38px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
   background: #f8fafc;
   border: 1.5px solid var(--line);
   border-radius: 6px;
   cursor: pointer;
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.15s;
 }
 
 .av-btn:hover {
   border-color: var(--ink);
+  transform: translateY(-1px);
 }
 
 .av-btn.selected {
   background: var(--nyc-yellow);
   border-color: var(--ink);
   box-shadow: 2px 2px 0 var(--ink);
+  color: var(--ink);
 }
 
 .form-grid-2 {

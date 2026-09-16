@@ -34,6 +34,12 @@ export const getAdminDashboardStats = async () => {
     .sort({ createdAt: -1 })
     .limit(10);
 
+  // Recent 10 registered users
+  const recentUsers = await User.find({ status: { $ne: 'DELETED' } })
+    .select('username email displayName role stats reputation warnings createdAt status')
+    .sort({ createdAt: -1 })
+    .limit(10);
+
   return {
     metrics: {
       totalUsers,
@@ -47,14 +53,18 @@ export const getAdminDashboardStats = async () => {
       totalComments,
       pendingReports
     },
-    recentSubmissions
+    recentSubmissions,
+    recentUsers
   };
 };
 
-export const getAdminUsers = async ({ page = 1, limit = 20, search, role, status }) => {
   const query = {};
   if (role) query.role = role;
-  if (status) query.status = status;
+  if (status) {
+    query.status = status;
+  } else {
+    query.status = { $ne: 'DELETED' };
+  }
   if (search) {
     query.$or = [
       { username: { $regex: search, $options: 'i' } },
@@ -140,3 +150,87 @@ export const updateFeedbackStatus = async (feedbackId, status, adminNotes, admin
   }, { new: true });
   return feedback;
 };
+
+export const grantUserPoints = async (userId, { xp = 0, rating = 0, reason = '' }, adminId) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    const error = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  user.stats.xp = Math.max(0, (user.stats.xp || 0) + Number(xp));
+  user.stats.rating = Math.max(0, (user.stats.rating || 1200) + Number(rating));
+  user.stats.level = Math.floor(user.stats.xp / 250) + 1;
+  await user.save();
+
+  await AdminAction.create({
+    adminId,
+    action: 'GRANT_POINTS',
+    targetType: 'USER',
+    targetId: userId,
+    details: { xp, rating, reason }
+  });
+
+  return user;
+};
+
+export const warnUser = async (userId, { reason = '' }, adminId) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    const error = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  if (!user.warnings) user.warnings = [];
+  user.warnings.push({
+    reason: reason || 'Administrative fair play violation notice',
+    issuedBy: adminId,
+    issuedAt: new Date()
+  });
+  user.reputation = 'WARNED';
+  await user.save();
+
+  await AdminAction.create({
+    adminId,
+    action: 'WARN_USER',
+    targetType: 'USER',
+    targetId: userId,
+    details: { reason }
+  });
+
+  return user;
+};
+
+export const clearWarnings = async (userId, adminId) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    const error = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  user.warnings = [];
+  user.reputation = 'CLEAN';
+  await user.save();
+
+  await AdminAction.create({
+    adminId,
+    action: 'CLEAR_WARNINGS',
+    targetType: 'USER',
+    targetId: userId,
+    details: { cleared: true }
+  });
+
+  return user;
+};
+
+export const deleteUser = async (userId, adminId) => {
+  const user = await User.findByIdAndUpdate(userId, { status: 'DELETED' }, { new: true });
+  await AdminAction.create({
+    adminId,
+    action: 'DELETE_USER',
+    targetType: 'USER',
+    targetId: userId
+  });
+  return user;
+};
+

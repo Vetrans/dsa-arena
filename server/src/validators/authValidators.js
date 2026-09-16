@@ -10,11 +10,10 @@ export const registerValidator = [
     .isEmail().withMessage('Must be a valid email address')
     .normalizeEmail(),
   body('password')
-    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters long')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).*$/).withMessage('Password must contain uppercase, lowercase, and numbers'),
+    .isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
   body('displayName')
+    .optional()
     .trim()
-    .notEmpty().withMessage('Display name is required')
     .isLength({ max: 50 }).withMessage('Display name cannot exceed 50 characters')
 ];
 

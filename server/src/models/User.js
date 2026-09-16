@@ -68,6 +68,18 @@ const userSchema = new mongoose.Schema({
     enum: ['ACTIVE', 'SUSPENDED', 'DELETED'],
     default: 'ACTIVE'
   },
+  reputation: {
+    type: String,
+    enum: ['CLEAN', 'WARNED', 'SUSPENDED'],
+    default: 'CLEAN'
+  },
+  warnings: [
+    {
+      reason: { type: String, required: true },
+      issuedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      issuedAt: { type: Date, default: Date.now }
+    }
+  ],
   lastActiveAt: {
     type: Date,
     default: Date.now
@@ -96,10 +108,14 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 userSchema.methods.toPublicProfile = function() {
   const obj = this.toObject();
   delete obj.passwordHash;
-  delete obj.email;
   delete obj.preferences;
-  delete obj.status;
-  return obj;
+  return {
+    ...obj,
+    reputation: obj.reputation || 'CLEAN',
+    warnings: obj.warnings || [],
+    warningCount: obj.warnings?.length || 0,
+    latestWarning: obj.warnings && obj.warnings.length > 0 ? obj.warnings[obj.warnings.length - 1] : null
+  };
 };
 
 userSchema.index({ 'stats.rating': -1 });

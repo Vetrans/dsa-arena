@@ -99,6 +99,12 @@ export const getProblems = async ({
   const formattedProblems = problems.map(problem => {
     const doc = problem.toObject();
     doc.userStatus = userProblemMap[problem._id.toString()] || 'UNSOLVED';
+    if (Array.isArray(doc.topics)) {
+      doc.topicSlugs = (doc.topicSlugs && doc.topicSlugs.length > 0)
+        ? doc.topicSlugs
+        : doc.topics.map(t => (typeof t === 'string' ? t : t.slug)).filter(Boolean);
+      doc.topicNames = doc.topics.map(t => (typeof t === 'string' ? t : t.name)).filter(Boolean);
+    }
     return doc;
   });
 

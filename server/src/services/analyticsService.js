@@ -101,7 +101,11 @@ export const getUserAnalytics = async (userId) => {
       totalSolved: user.stats.problemsSolved || 0,
       accuracy: user.stats.accuracy || 0,
       currentStreak: user.stats.currentStreak || 0,
-      longestStreak: user.stats.longestStreak || 0
+      longestStreak: user.stats.longestStreak || 0,
+      reputation: user.reputation || 'CLEAN',
+      warnings: user.warnings || [],
+      warningCount: user.warnings?.length || 0,
+      latestWarning: user.warnings && user.warnings.length > 0 ? user.warnings[user.warnings.length - 1] : null
     },
     difficultyStats,
     topicPerformance,

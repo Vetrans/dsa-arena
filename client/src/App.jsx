@@ -100,6 +100,7 @@ export default function App() {
       <Routes>
         {/* Public Pages */}
         <Route path="/" element={<HomePage />} />
+        <Route path="/features" element={<HomePage defaultView="features" />} />
         <Route path="/login" element={<AuthPage mode="login" />} />
         <Route path="/register" element={<AuthPage mode="register" />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />

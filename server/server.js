@@ -8,6 +8,9 @@ import { setupBattleSockets } from './src/sockets/battleSocket.js';
 import { startJudgeWorker } from './src/workers/judgeWorker.js';
 import { setupDistributedScheduler } from './src/schedulers/cronScheduler.js';
 
+import { ensureTopContendersExist } from './src/seed/seedContenders.js';
+import { ensureAllProblemsExist } from './src/seed/ensureAllProblems.js';
+
 let server;
 let judgeWorkerInstance;
 const shutdown = async (signal) => {
@@ -24,6 +27,8 @@ process.on('uncaughtException', (err) => { logger.fatal({ err }, 'Uncaught excep
 process.on('unhandledRejection', (err) => { logger.fatal({ err }, 'Unhandled rejection'); shutdown('unhandledRejection'); });
 
 await connectDB();
+await ensureTopContendersExist();
+await ensureAllProblemsExist();
 await connectRedis();
 
 judgeWorkerInstance = startJudgeWorker(5);

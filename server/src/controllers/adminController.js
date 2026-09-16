@@ -67,3 +67,51 @@ export const updateFeedbackStatus = async (req, res, next) => {
     next(error);
   }
 };
+
+export const grantUserPoints = async (req, res, next) => {
+  try {
+    const user = await adminService.grantUserPoints(
+      req.params.id,
+      {
+        xp: Number(req.body.xp || 0),
+        rating: Number(req.body.rating || 0),
+        reason: req.body.reason || ''
+      },
+      req.user._id
+    );
+    return success(res, user, 'Points and rating successfully granted');
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const warnUser = async (req, res, next) => {
+  try {
+    const user = await adminService.warnUser(
+      req.params.id,
+      { reason: req.body.reason || 'Official arena warning' },
+      req.user._id
+    );
+    return success(res, user, 'Warning issued to user');
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const clearWarnings = async (req, res, next) => {
+  try {
+    const user = await adminService.clearWarnings(req.params.id, req.user._id);
+    return success(res, user, 'Warnings cleared; reputation restored to Clean');
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteUser = async (req, res, next) => {
+  try {
+    const user = await adminService.deleteUser(req.params.id, req.user._id);
+    return success(res, user, 'User successfully removed');
+  } catch (error) {
+    next(error);
+  }
+};

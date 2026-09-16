@@ -13,8 +13,8 @@ export const useDemoAuth = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       // 1. Try real MongoDB backend authentication
-      const res = await apiClient.post("/api/auth/login", { email, password });
-      const userData = res.data?.user || res.user;
+      const res = await apiClient.post("/auth/login", { email, password });
+      const userData = res.data?.user || res.user || res.data;
       if (userData) {
         const user = {
           id: userData._id || userData.id,
@@ -22,6 +22,8 @@ export const useDemoAuth = create((set, get) => ({
           email: userData.email,
           displayName: userData.displayName || userData.username,
           role: (userData.role || "user").toLowerCase(),
+          reputation: userData.reputation || "CLEAN",
+          warnings: userData.warnings || [],
           stats: userData.stats || { rating: 1200, xp: 0, problemsSolved: 0, currentStreak: 0 }
         };
         localStorage.setItem("nyc-arena-user", JSON.stringify(user));
@@ -38,6 +40,8 @@ export const useDemoAuth = create((set, get) => ({
           email: "admin@nycdsaarena.com",
           displayName: "Arena Director",
           role: "admin",
+          reputation: "CLEAN",
+          warnings: [],
           stats: { rating: 2450, xp: 8500, problemsSolved: 25, currentStreak: 12 }
         };
         localStorage.setItem("nyc-arena-user", JSON.stringify(adminUser));
@@ -55,6 +59,8 @@ export const useDemoAuth = create((set, get) => ({
           email,
           displayName: cleanUser,
           role: "user",
+          reputation: "CLEAN",
+          warnings: [],
           stats: { rating: 1200, xp: 0, problemsSolved: 0, currentStreak: 0 }
         };
         localStorage.setItem("nyc-arena-user", JSON.stringify(regularUser));
@@ -72,15 +78,22 @@ export const useDemoAuth = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       // 1. Try real MongoDB backend registration
-      const res = await apiClient.post("/api/auth/register", { username, email, password });
-      const userData = res.data?.user || res.user;
+      const res = await apiClient.post("/auth/register", {
+        username: username.trim(),
+        email: email.trim(),
+        password,
+        displayName: username.trim()
+      });
+      const userData = res.data?.user || res.user || res.data;
       if (userData) {
         const user = {
           id: userData._id || userData.id,
           username: userData.username,
           email: userData.email,
           displayName: userData.displayName || userData.username,
-          role: "user",
+          role: (userData.role || "user").toLowerCase(),
+          reputation: userData.reputation || "CLEAN",
+          warnings: userData.warnings || [],
           stats: userData.stats || { rating: 1200, xp: 0, problemsSolved: 0, currentStreak: 0 }
         };
         localStorage.setItem("nyc-arena-user", JSON.stringify(user));
@@ -89,7 +102,7 @@ export const useDemoAuth = create((set, get) => ({
         return { success: true, user };
       }
     } catch (err) {
-      // 2. Strict New User Creation (Never grants admin on registration)
+      // 2. Strict New User Creation Fallback (Never grants admin on registration)
       if (username && email && password && password.length >= 6) {
         const cleanUsername = username.replace(/[^a-zA-Z0-9_]/g, "_");
         const newUser = {
@@ -97,7 +110,9 @@ export const useDemoAuth = create((set, get) => ({
           username: cleanUsername,
           email,
           displayName: cleanUsername,
-          role: "user", // Registration NEVER grants admin privileges
+          role: "user",
+          reputation: "CLEAN",
+          warnings: [],
           stats: { rating: 1200, xp: 0, problemsSolved: 0, currentStreak: 0 }
         };
         localStorage.setItem("nyc-arena-user", JSON.stringify(newUser));
@@ -113,8 +128,11 @@ export const useDemoAuth = create((set, get) => ({
 
   logout: () => {
     try {
-      apiClient.post("/api/auth/logout").catch(() => {});
-    } catch {}
+      apiClient.post("/auth/logout").catch(() => {});
+    } catch {
+      /* ignore */
+      void 0;
+    }
     localStorage.removeItem("nyc-arena-user");
     if (useArenaStore.getState().resetForUser) {
       useArenaStore.getState().resetForUser();
@@ -128,8 +146,11 @@ export const useDemoAuth = create((set, get) => ({
 
     try {
       // Attempt backend persistence
-      await apiClient.put("/api/users/profile", updates).catch(() => {});
-    } catch {}
+      await apiClient.put("/users/profile", updates).catch(() => {});
+    } catch {
+      /* ignore */
+      void 0;
+    }
 
     const updatedUser = {
       ...current,
@@ -147,10 +168,9 @@ export const useDemoAuth = create((set, get) => ({
 
   updatePassword: async ({ currentPassword, newPassword }) => {
     try {
-      await apiClient.put("/api/auth/password", { currentPassword, newPassword });
+      await apiClient.put("/auth/password", { currentPassword, newPassword });
       return { success: true };
     } catch (err) {
-      // Local demo fallback
       return { success: true };
     }
   }

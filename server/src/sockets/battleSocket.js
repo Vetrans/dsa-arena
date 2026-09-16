@@ -52,8 +52,16 @@ export const setupBattleSockets = async (httpServer) => {
           const opponentSocket = io.sockets.sockets.get(opponent.socketId);
           if (opponentSocket) opponentSocket.join(roomId);
 
-          // Fetch random curated problem from MongoDB
-          let problem = await Problem.findOne({ isPublished: true, difficulty: { $in: ['Easy', 'Medium'] } }).lean();
+          // Fetch random curated problem dynamically from MongoDB
+          let problem = null;
+          const count = await Problem.countDocuments({ status: 'PUBLISHED', difficulty: { $in: ['Easy', 'Medium'] } });
+          if (count > 0) {
+            const random = Math.floor(Math.random() * count);
+            problem = await Problem.findOne({ status: 'PUBLISHED', difficulty: { $in: ['Easy', 'Medium'] } }).skip(random).lean();
+          }
+          if (!problem) {
+            problem = await Problem.findOne({ status: 'PUBLISHED' }).lean();
+          }
           if (!problem) {
             problem = {
               slug: 'two-sum',

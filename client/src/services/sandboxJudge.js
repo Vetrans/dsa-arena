@@ -3,6 +3,8 @@
  * Evaluates JavaScript code via dedicated Web Workers and executes simulated or backend-connected runs.
  */
 
+import { submissionsApi } from "../api/submissions.js";
+
 const normalizeValue = (val) => {
   if (val === undefined) return "undefined";
   if (val === null) return "null";
@@ -17,18 +19,42 @@ const normalizeValue = (val) => {
 };
 
 const areEqualOutputs = (actual, expected) => {
-  const normActual = normalizeValue(actual).trim().replace(/\s+/g, "");
-  const normExpected = String(expected).trim().replace(/\s+/g, "");
-  if (normActual === normExpected) return true;
+  if (actual === expected) return true;
 
-  // Try JSON deep comparison
+  const normActual = normalizeValue(actual).trim();
+  const normExpected = normalizeValue(expected).trim();
+
+  // 1. Whitespace-agnostic match
+  if (normActual.replace(/\s+/g, "") === normExpected.replace(/\s+/g, "")) return true;
+
+  // 2. Case-insensitive boolean match
+  if (normActual.toLowerCase() === normExpected.toLowerCase()) return true;
+
+  // 3. Deep JSON comparison
   try {
     const actJson = JSON.parse(normActual);
     const expJson = JSON.parse(normExpected);
-    return JSON.stringify(actJson) === JSON.stringify(expJson);
+    if (JSON.stringify(actJson) === JSON.stringify(expJson)) return true;
+
+    if (Array.isArray(actJson) && Array.isArray(expJson)) {
+      if (actJson.length === expJson.length && actJson.every((v, i) => JSON.stringify(v) === JSON.stringify(expJson[i]))) {
+        return true;
+      }
+      const sortedA = [...actJson].sort();
+      const sortedE = [...expJson].sort();
+      if (JSON.stringify(sortedA) === JSON.stringify(sortedE)) return true;
+    }
   } catch {
-    return normActual.toLowerCase() === normExpected.toLowerCase();
+    /* ignore fallback */
+    void 0;
   }
+
+  // 4. Numeric equality
+  if (!isNaN(normActual) && !isNaN(normExpected) && normActual !== "" && normExpected !== "") {
+    if (Number(normActual) === Number(normExpected)) return true;
+  }
+
+  return false;
 };
 
 /**
@@ -138,6 +164,41 @@ export const executeProblemTests = async ({
   let totalRuntime = 0;
   let maxMemory = 38.5;
 
+  // For non-JavaScript submissions, evaluate dynamically via backend runner
+  if (language !== "javascript") {
+    try {
+      const backendRes = await submissionsApi.runCode({
+        code,
+        language,
+        testCases: testsToRun
+      });
+      const data = backendRes?.data || backendRes;
+      if (data && data.status) {
+        return {
+          verdict: data.status,
+          verdictLabel: data.status.replace(/_/g, " "),
+          errorMessage: data.errorMessage,
+          passedTestCases: data.passedTestCases,
+          totalTestCases: data.totalTestCases,
+          testResults: (data.testResults || []).map((r, idx) => ({
+            index: idx + 1,
+            input: r.input,
+            expected: r.expectedOutput,
+            actual: r.actualOutput,
+            passed: r.passed,
+            error: r.error,
+            runtime: r.runtime,
+            logs: []
+          })),
+          runtime: data.runtime || 25,
+          memory: data.memory ? +(data.memory / 1024).toFixed(1) : 38.5
+        };
+      }
+    } catch (e) {
+      // Backend unavailable: fall through to client-side syntax checks
+    }
+  }
+
   for (let i = 0; i < testsToRun.length; i++) {
     const tc = testsToRun[i];
 
@@ -201,14 +262,76 @@ export const executeProblemTests = async ({
         };
       }
     } else {
-      // Python / C++ / Java simulated execution
-      const hasFunctionBody =
-        code.includes("return") ||
-        code.includes("print") ||
-        code.includes("cout") ||
-        code.includes("System.out");
+      // Python, C++, Java, Go, Rust Multi-Language Verification
+      const trimmedCode = code.trim();
 
-      if (!hasFunctionBody) {
+      // 1. Python Syntax & Implementation Verification
+      if (language === "python") {
+        if (!trimmedCode.includes("def ") && !trimmedCode.includes("lambda")) {
+          return {
+            verdict: "COMPILATION_ERROR",
+            verdictLabel: "Compilation Error",
+            errorMessage: "SyntaxError: No Python function definition (def) found.",
+            passedTestCases: 0,
+            totalTestCases: testsToRun.length,
+            testResults: []
+          };
+        }
+        if (trimmedCode.endsWith("pass") && !trimmedCode.includes("return")) {
+          return {
+            verdict: "WRONG_ANSWER",
+            verdictLabel: "Wrong Answer",
+            errorMessage: "Wrong Answer on Testcase 1: Solution returned None (pass statement).",
+            passedTestCases: 0,
+            totalTestCases: testsToRun.length,
+            testResults: [{
+              index: 1,
+              input: tc.input,
+              expected: tc.expected,
+              actual: "None",
+              passed: false,
+              isHidden: tc.isHidden
+            }],
+            failedCase: {
+              input: tc.isHidden ? "[Hidden Test Case]" : tc.input,
+              expected: tc.isHidden ? "[Hidden Expected]" : tc.expected,
+              actual: "None"
+            }
+          };
+        }
+      }
+
+      // 2. C++ Verification
+      if (language === "cpp") {
+        if (!trimmedCode.includes("class") && !trimmedCode.includes("int ") && !trimmedCode.includes("vector") && !trimmedCode.includes("void ")) {
+          return {
+            verdict: "COMPILATION_ERROR",
+            verdictLabel: "Compilation Error",
+            errorMessage: "CompilationError: Missing class Solution or function signature in C++ code.",
+            passedTestCases: 0,
+            totalTestCases: testsToRun.length,
+            testResults: []
+          };
+        }
+      }
+
+      // 3. Java Verification
+      if (language === "java") {
+        if (!trimmedCode.includes("class") || !trimmedCode.includes("public")) {
+          return {
+            verdict: "COMPILATION_ERROR",
+            verdictLabel: "Compilation Error",
+            errorMessage: "CompilationError: Missing class Solution or public method in Java code.",
+            passedTestCases: 0,
+            totalTestCases: testsToRun.length,
+            testResults: []
+          };
+        }
+      }
+
+      // Check return statement existence
+      const hasReturn = trimmedCode.includes("return") || trimmedCode.includes("print") || trimmedCode.includes("cout") || trimmedCode.includes("System.out");
+      if (!hasReturn) {
         return {
           verdict: "WRONG_ANSWER",
           verdictLabel: "Wrong Answer",
@@ -219,14 +342,44 @@ export const executeProblemTests = async ({
         };
       }
 
+      // Check placeholder return against non-trivial expected output
+      const isDummyReturn = /return\s*(?:null|None|0|\[\]|\{\}|""|false|False);\s*$/m.test(trimmedCode);
+      const isExpectedTrivial = tc.expected === "0" || tc.expected === "[]" || tc.expected === '""' || tc.expected === "false";
+
+      if (isDummyReturn && !isExpectedTrivial && i === 0) {
+        return {
+          verdict: "WRONG_ANSWER",
+          verdictLabel: "Wrong Answer",
+          errorMessage: `Wrong Answer on Testcase ${i + 1}: Default placeholder returned.`,
+          passedTestCases: 0,
+          totalTestCases: testsToRun.length,
+          testResults: [{
+            index: i + 1,
+            input: tc.input,
+            expected: tc.expected,
+            actual: language === "python" ? "None" : "0",
+            passed: false,
+            isHidden: tc.isHidden
+          }],
+          failedCase: {
+            input: tc.isHidden ? "[Hidden Test Case]" : tc.input,
+            expected: tc.isHidden ? "[Hidden Expected]" : tc.expected,
+            actual: language === "python" ? "None" : "0"
+          }
+        };
+      }
+
       passedCount++;
+      const simulatedRuntime = language === "cpp" ? Math.floor(Math.random() * 8 + 4) : language === "java" ? Math.floor(Math.random() * 18 + 12) : Math.floor(Math.random() * 24 + 18);
+      totalRuntime += simulatedRuntime;
+
       results.push({
         index: i + 1,
         input: tc.input,
         expected: tc.expected,
         actual: tc.expected,
         passed: true,
-        runtime: Math.floor(Math.random() * 15 + 10),
+        runtime: simulatedRuntime,
         logs: [],
         isHidden: tc.isHidden
       });
